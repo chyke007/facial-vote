@@ -2,15 +2,23 @@ import { Amplify, Auth } from 'aws-amplify'
 import Head from 'next/head'
 import { useState } from 'react'
 import styles from 'src/styles/Register.module.css'
+import config from 'src/utils/config'
+import { s3Upload } from "src/utils/helpers";
 
 export default function Register_Face() {
 
     Amplify.configure({
         Auth: {
-            region: process.env.REGION,
-            userPoolId: process.env.USERPOOLID,
-            userPoolWebClientId: process.env.USERPOOLWEBCLIENTID,
+            region: config.Cognito.REGION,
+            userPoolId: config.Cognito.USER_POOL_ID,
+            identityPoolId: config.Cognito.IDENTITY_POOL_ID,
+            userPoolWebClientId: config.Cognito.APP_CLIENT_ID,
             mandatorySignIn: true
+        },
+        Storage: {
+            region: config.S3.REGION,
+            bucket: config.S3.BUCKET,
+            identityPoolId: config.Cognito.IDENTITY_POOL_ID
         }
     })
 
@@ -20,10 +28,11 @@ export default function Register_Face() {
         ADD_PHOTO
     }
 
-    const [stage, setStage] = useState(Stages.RETRIEVE_ACCOUNT);
+    const [stage, setStage] = useState(Stages.ADD_PHOTO);
     const [email, setEmail] = useState("");
     const [otp, setOtp] = useState("");
-    const [isSignedIn, setIsSignedIn] = useState(false);
+    const [file, setFile] = useState(null as any);
+    const [isSignedIn, setIsSignedIn] = useState(true);
     const [isloading, setIsloading] = useState(false)
     const [cognitoUser, setCognitoUser] = useState(null as any);
 
@@ -32,7 +41,7 @@ export default function Register_Face() {
     const handleSubmit = async (event: any) => {
         switch (stage) {
             case Stages.ADD_PHOTO:
-                console.log(3);
+                uploadImage(event)
                 break;
             case Stages.VALIDATE_OTP:
                 validateOtp(event);
@@ -65,6 +74,10 @@ export default function Register_Face() {
         setOtp(e.target.value)
     }
 
+    const selectFile = (e: any) => {
+        setFile(e.target.files);
+    }
+
     const retrieveAccount = async (event: any) => {
         event.preventDefault();
         const email = event.target.email.value;
@@ -84,6 +97,23 @@ export default function Register_Face() {
         }
     }
 
+    const uploadImage = async (event: any) => {
+        event.preventDefault();
+	  
+		if (file && file.size > config.MAX_ATTACHMENT_SIZE) {
+		  alert(`Please pick a file smaller than ${config.MAX_ATTACHMENT_SIZE/1000000} MB.`);
+		  return;
+		}
+	  
+		setIsloading(true)
+	  
+		try {
+		  await s3Upload(file);  
+		} catch (e) {
+		  alert(e);
+		  setIsloading(false);
+		}
+    }
     //sign out after image successful upload
     async function signOut() {
         await Auth.signOut()
@@ -153,6 +183,7 @@ export default function Register_Face() {
                         {stage == Stages.ADD_PHOTO && isSignedIn &&
 
                             <div className="my-2">
+                               <input className="border border-2 border-black text-black w-full py-2 px-3" required onChange={selectFile} id="file" type="file" name="file" />
                             </div>
                         }
                         <div className="flex">

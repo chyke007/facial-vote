@@ -67,7 +67,7 @@ resources:
           CreateAuthChallenge: !GetAtt CreateAuthChallengeLambdaFunction.Arn
           VerifyAuthChallengeResponse: !GetAtt VerifyAuthChallengeResponseLambdaFunction.Arn
 
-    WebUserPoolClient:
+    FacialVoteUserPoolClient:
       Type: AWS::Cognito::UserPoolClient
       Properties:
         ClientName: web
@@ -76,6 +76,17 @@ resources:
           - ALLOW_CUSTOM_AUTH
           - ALLOW_REFRESH_TOKEN_AUTH
         PreventUserExistenceErrors: ENABLED
+
+    FacialVoteIdentityPool:
+      Type: AWS::Cognito::IdentityPool
+      Properties:
+        IdentityPoolName: facial_vote_upload_identity_pool
+        AllowUnauthenticatedIdentities: false
+        CognitoIdentityProviders:
+          - ClientId:
+              Ref: FacialVoteUserPoolClient
+            ProviderName:
+              Fn::GetAtt: [FacialVoteUserPool, ProviderName]
 
     UserPoolPreSignUpLambdaPermission:
       Type: AWS::Lambda::Permission
