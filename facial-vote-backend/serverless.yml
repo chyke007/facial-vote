@@ -12,6 +12,7 @@ provider:
 custom:
   # replace with your verified SES domain
   domain: work@chibuikenwa.com 
+  uploaded_s3_bucket_name: ${self:service}-facialvote
 
 functions:
   preSignUp:
@@ -87,6 +88,118 @@ resources:
               Ref: FacialVoteUserPoolClient
             ProviderName:
               Fn::GetAtt: [FacialVoteUserPool, ProviderName]
+    
+    CognitoAuthRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: ${self:service}_appAuthRole
+        Path: /
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: "Allow"
+              Principal:
+                Federated: "cognito-identity.amazonaws.com"
+              Action:
+                - "sts:AssumeRoleWithWebIdentity"
+              Condition:
+                StringEquals:
+                  "cognito-identity.amazonaws.com:aud":
+                    Ref: FacialVoteIdentityPool
+                "ForAnyValue:StringLike":
+                  "cognito-identity.amazonaws.com:amr": authenticated
+        Policies:
+          - PolicyName: "CognitoAuthorizedPolicy"
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: "Allow"
+                  Action:
+                    - "mobileanalytics:PutEvents"
+                    - "cognito-sync:*"
+                    - "cognito-identity:*"
+                  Resource: "*"
+                - Effect: "Allow"
+                  Action:
+                    - "execute-api:Invoke"
+                  Resource: "*"
+                - Effect: "Allow"
+                  Action: 
+                    - "s3:GetObject"
+                    - "s3:ListAllMyBuckets"
+                    - "s3:PutObject"
+                  Resource:
+                  - Fn::Join:
+                    - ''
+                    -
+                      - Fn::GetAtt: [UploadedS3Bucket, Arn]
+                      - '/photos/'
+                      - '$'
+                      - '{cognito-identity.amazonaws.com:sub}/*'
+
+    CognitoUnauthRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: ${self:service}_appUnauthRole
+        Path: /
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: "Allow"
+              Principal:
+                Federated: "cognito-identity.amazonaws.com"
+              Action:
+                - "sts:AssumeRoleWithWebIdentity"
+              Condition:
+                StringEquals:
+                  "cognito-identity.amazonaws.com:aud":
+                    Ref: FacialVoteIdentityPool
+                "ForAnyValue:StringLike":
+                  "cognito-identity.amazonaws.com:amr": unauthenticated
+        Policies:
+          - PolicyName: "CognitoUnauthorizedPolicy"
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: "Allow"
+                  Action:
+                    - "mobileanalytics:PutEvents"
+                    - "cognito-sync:*"
+                    - "cognito-identity:*"
+                  Resource: "*"
+                - Effect: "Allow"
+                  Action: 
+                    - "s3:GetObject"
+                    - "s3:PutObject"
+                  Resource:
+                  - Fn::Join:
+                    - ''
+                    -
+                      - Fn::GetAtt: [UploadedS3Bucket, Arn]
+                      - '/compare/'
+                      - '$'
+                      - '{cognito-identity.amazonaws.com:sub}/*'
+    
+    UploadedS3Bucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:custom.uploaded_s3_bucket_name}
+        CorsConfiguration:
+          CorsRules:
+          - AllowedHeaders: 
+              - '*'
+            AllowedMethods: 
+              - HEAD
+              - GET
+              - PUT
+              - POST
+            AllowedOrigins: 
+              - '*'
+            ExposedHeaders:
+              - x-amz-server-side-encryption
+              - x-amz-request-id
+              - x-amz-id-2
+            MaxAge: 3000
 
     UserPoolPreSignUpLambdaPermission:
       Type: AWS::Lambda::Permission
