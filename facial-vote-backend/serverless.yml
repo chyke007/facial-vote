@@ -89,6 +89,18 @@ resources:
             ProviderName:
               Fn::GetAtt: [FacialVoteUserPool, ProviderName]
     
+    # Cognito roles
+    CognitoIdentityPoolRoles:
+      Type: AWS::Cognito::IdentityPoolRoleAttachment
+      Properties:
+        IdentityPoolId:
+          Ref: FacialVoteIdentityPool
+        Roles:
+          authenticated:
+            Fn::GetAtt: [CognitoAuthRole, Arn]
+          unauthenticated:
+            Fn::GetAtt: [CognitoUnauthRole, Arn]
+    
     CognitoAuthRole:
       Type: AWS::IAM::Role
       Properties:
@@ -232,3 +244,9 @@ resources:
         Principal: cognito-idp.amazonaws.com
         FunctionName: !Ref VerifyAuthChallengeResponseLambdaFunction
         SourceArn: !GetAtt FacialVoteUserPool.Arn
+
+# Print out the Id of the Identity Pool that is created
+outputs:
+  IdentityPoolId:
+    Value:
+      Ref: FacialVoteIdentityPool

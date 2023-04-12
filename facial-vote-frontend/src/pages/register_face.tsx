@@ -2,25 +2,12 @@ import { Amplify, Auth } from 'aws-amplify'
 import Head from 'next/head'
 import { useState } from 'react'
 import styles from 'src/styles/Register.module.css'
-import config from 'src/utils/config'
+import awsExport from 'src/utils/aws-export';
+import config from 'src/utils/config';
 import { s3Upload } from "src/utils/helpers";
 
 export default function Register_Face() {
-
-    Amplify.configure({
-        Auth: {
-            region: config.Cognito.REGION,
-            userPoolId: config.Cognito.USER_POOL_ID,
-            identityPoolId: config.Cognito.IDENTITY_POOL_ID,
-            userPoolWebClientId: config.Cognito.APP_CLIENT_ID,
-            mandatorySignIn: true
-        },
-        Storage: {
-            region: config.S3.REGION,
-            bucket: config.S3.BUCKET,
-            identityPoolId: config.Cognito.IDENTITY_POOL_ID
-        }
-    })
+    Amplify.configure(awsExport);
 
     enum Stages {
         RETRIEVE_ACCOUNT,
@@ -28,11 +15,11 @@ export default function Register_Face() {
         ADD_PHOTO
     }
 
-    const [stage, setStage] = useState(Stages.ADD_PHOTO);
+    const [stage, setStage] = useState(Stages.RETRIEVE_ACCOUNT);
     const [email, setEmail] = useState("");
     const [otp, setOtp] = useState("");
     const [file, setFile] = useState(null as any);
-    const [isSignedIn, setIsSignedIn] = useState(true);
+    const [isSignedIn, setIsSignedIn] = useState(false);
     const [isloading, setIsloading] = useState(false)
     const [cognitoUser, setCognitoUser] = useState(null as any);
 
@@ -92,6 +79,7 @@ export default function Register_Face() {
             setAttemptsLeft(parseInt(cognitoUser.challengeParam.attemptsLeft));
 
         } catch (error: any) {
+            console.log(1, error)
             alert(error.message);
             setIsloading(false);
         }
@@ -104,6 +92,11 @@ export default function Register_Face() {
 		  alert(`Please pick a file smaller than ${config.MAX_ATTACHMENT_SIZE/1000000} MB.`);
 		  return;
 		}
+
+        if (file && file.type > config.MAX_ATTACHMENT_SIZE) {
+            alert(`Please pick a file smaller than ${config.MAX_ATTACHMENT_SIZE/1000000} MB.`);
+            return;
+          }
 	  
 		setIsloading(true)
 	  
@@ -183,7 +176,7 @@ export default function Register_Face() {
                         {stage == Stages.ADD_PHOTO && isSignedIn &&
 
                             <div className="my-2">
-                               <input className="border border-2 border-black text-black w-full py-2 px-3" required onChange={selectFile} id="file" type="file" name="file" />
+                               <input className="border border-2 border-black text-black w-full py-2 px-3" required onChange={selectFile} id="file" type="file" name="file" accept="image/png,  image/jpg, image/jpeg" />
                             </div>
                         }
                         <div className="flex">
