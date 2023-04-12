@@ -14,6 +14,8 @@ custom:
   # replace with your verified SES domain
   domain: work@chibuikenwa.com 
   uploaded_s3_bucket_name: ${self:service}-facialvote
+  rekognition_collection_name: ${self:service}-facialvote
+  dynamodb_name: ${self:service}-facialvote
 
 functions:
   preSignUp:
@@ -106,7 +108,8 @@ stepFunctions:
 
 
 resources:
-  Resources:    
+  Resources:   
+    # User pool 
     FacialVoteUserPool:
       Type: AWS::Cognito::UserPool
       Properties:
@@ -261,6 +264,7 @@ resources:
                       - '$'
                       - '{cognito-identity.amazonaws.com:sub}/*'
     
+    # S3 Bucket
     UploadedS3Bucket:
       Type: AWS::S3::Bucket
       Properties:
@@ -281,7 +285,45 @@ resources:
               - x-amz-request-id
               - x-amz-id-2
             MaxAge: 3000
+    
+    # AWS Rekognition
+    RekognitionCollection:
+      Type: AWS::Rekognition::Collection
+      Properties:
+         CollectionId: ${self:custom.rekognition_collection_name}
+    
+    #DynamoDB
+    FacialVoteDB:
+      Type: AWS::DynamoDB::Table
+      DeletionPolicy: Retain
+      Properties:
+        TableName: ${self:custom.dynamodb_name}
+        AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+        - AttributeName: GS1PK
+          AttributeType: S
+        - AttributeName: GS1SK
+          AttributeType: S
+        KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+        GlobalSecondaryIndexes:
+          - IndexName: GS1
+            KeySchema:
+              - AttributeName: GS1PK
+                KeyType: HASH
+              - AttributeName: GS1SK
+                KeyType: RANGE
+            Projection:
+              ProjectionType: 'ALL'
+        BillingMode: PAY_PER_REQUEST
 
+    # Lambda permissions
     UserPoolPreSignUpLambdaPermission:
       Type: AWS::Lambda::Permission
       Properties:
@@ -313,6 +355,8 @@ resources:
         Principal: cognito-idp.amazonaws.com
         FunctionName: !Ref VerifyAuthChallengeResponseLambdaFunction
         SourceArn: !GetAtt FacialVoteUserPool.Arn
+
+
 
 # Print out the Id of the Identity Pool that is created
 outputs:
