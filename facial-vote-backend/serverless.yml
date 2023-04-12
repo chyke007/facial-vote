@@ -4,6 +4,7 @@ frameworkVersion: '3'
 plugins:
   - serverless-iam-roles-per-function
   - serverless-step-functions
+  - serverless-pseudo-parameters
 provider:
   name: aws
   runtime: nodejs18.x
@@ -56,9 +57,52 @@ stepFunctions:
         StartAt: ValidateFace
         States:
           ValidateFace:
+            Type: Task
+            Resource: !GetAtt validateFace.Arn 
+            Next: IsFaceValidated
+          IsFaceValidated:
             Type: Choice
-            Resource: !Ref validateFace 
-            End: true
+            Choices:
+            - Variable: "$.status"
+              StringEquals: SUCCESS
+              Next: CheckDuplicate
+            - Variable: "$.status"
+              StringEquals: ERROR
+              Next: Fail
+          CheckDuplicate:
+            Type: Task
+            Resource: !GetAtt checkDuplicate.Arn
+            Next: IsFaceDuplicate
+          IsFaceDuplicate:
+            Type: Choice
+            Choices:
+            - Variable: "$.status"
+              StringEquals: SUCCESS
+              Next: IndexFace
+            - Variable: "$.status"
+              StringEquals: ERROR
+              Next: Fail
+          IndexFace:
+            Type: Task
+            Resource: !GetAtt indexFace.Arn
+            Next: SaveFaceDynamoDb
+          SaveFaceDynamoDb:
+            Type: Task
+            Resource: !GetAtt saveFaceDynamoDb.Arn
+            Next: IsFaceSaved
+          IsFaceSaved:
+            Type: Choice
+            Choices:
+            - Variable: "$.status"
+              StringEquals: SUCCESS
+              Next: Success
+            - Variable: "$.status"
+              StringEquals: ERROR
+              Next: Fail
+          Success:
+            Type: Succeed
+          Fail:
+            Type: Fail
 
 
 resources:

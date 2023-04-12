@@ -8,6 +8,7 @@
     "serverless": "^3.28.1",
     "serverless-iam-roles-per-function": "^3.2.0",
     "serverless-lumigo": "^1.14.3",
+    "serverless-pseudo-parameters": "^2.6.1",
     "serverless-step-functions": "^3.13.0"
   },
   "scripts": {
