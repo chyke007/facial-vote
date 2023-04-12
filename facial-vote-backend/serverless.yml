@@ -3,7 +3,7 @@ frameworkVersion: '3'
 
 plugins:
   - serverless-iam-roles-per-function
-
+  - serverless-step-functions
 provider:
   name: aws
   runtime: nodejs18.x
@@ -35,6 +35,31 @@ functions:
 
   verifyAuthChallengeResponse:
     handler: src/functions/verify-auth-challenge-response.handler
+
+  validateFace:
+    handler: src/functions/stepfunctions/savephoto/validate-face.handler
+  
+  checkDuplicate:
+    handler: src/functions/stepfunctions/savephoto/check-duplicate.handler
+
+  indexFace:
+    handler: src/functions/stepfunctions/savephoto/index-face.handler
+
+  saveFaceDynamoDb:
+    handler: src/functions/stepfunctions/savephoto/save-face-dynamodb.handler
+	
+stepFunctions:
+  stateMachines:
+    SaveFace:
+      definition:
+        Comment: "Indexes users photo to Amazon Rekongition and saves metadata to DynamoDb"
+        StartAt: ValidateFace
+        States:
+          ValidateFace:
+            Type: Choice
+            Resource: !Ref validateFace 
+            End: true
+
 
 resources:
   Resources:    

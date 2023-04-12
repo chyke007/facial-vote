@@ -96,7 +96,11 @@ export default function Register_Face() {
 		  await s3Upload(file[0], await Auth.currentUserInfo());  
           alert("Success");
           setIsloading(false);
-          signOut();
+          
+          //Wait for AWS IoT before proceeding with an error message or success
+          //if succes, then signout user
+          //else remain on this step
+          //signOut();
 		} catch (e) {
 		  alert(e);
 		  setIsloading(false);
