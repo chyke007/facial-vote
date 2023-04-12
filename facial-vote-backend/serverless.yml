@@ -12,6 +12,7 @@ provider:
 custom:
   # replace with your verified SES domain
   domain: work@chibuikenwa.com 
+  uploaded_s3_bucket_name: ${self:service}-facialvote
 
 functions:
   preSignUp:
@@ -67,7 +68,7 @@ resources:
           CreateAuthChallenge: !GetAtt CreateAuthChallengeLambdaFunction.Arn
           VerifyAuthChallengeResponse: !GetAtt VerifyAuthChallengeResponseLambdaFunction.Arn
 
-    WebUserPoolClient:
+    FacialVoteUserPoolClient:
       Type: AWS::Cognito::UserPoolClient
       Properties:
         ClientName: web
@@ -76,6 +77,141 @@ resources:
           - ALLOW_CUSTOM_AUTH
           - ALLOW_REFRESH_TOKEN_AUTH
         PreventUserExistenceErrors: ENABLED
+
+    FacialVoteIdentityPool:
+      Type: AWS::Cognito::IdentityPool
+      Properties:
+        IdentityPoolName: facial_vote_upload_identity_pool
+        AllowUnauthenticatedIdentities: false
+        CognitoIdentityProviders:
+          - ClientId:
+              Ref: FacialVoteUserPoolClient
+            ProviderName:
+              Fn::GetAtt: [FacialVoteUserPool, ProviderName]
+    
+    # Cognito roles
+    CognitoIdentityPoolRoles:
+      Type: AWS::Cognito::IdentityPoolRoleAttachment
+      Properties:
+        IdentityPoolId:
+          Ref: FacialVoteIdentityPool
+        Roles:
+          authenticated:
+            Fn::GetAtt: [CognitoAuthRole, Arn]
+          unauthenticated:
+            Fn::GetAtt: [CognitoUnauthRole, Arn]
+    
+    CognitoAuthRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: ${self:service}_appAuthRole
+        Path: /
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: "Allow"
+              Principal:
+                Federated: "cognito-identity.amazonaws.com"
+              Action:
+                - "sts:AssumeRoleWithWebIdentity"
+              Condition:
+                StringEquals:
+                  "cognito-identity.amazonaws.com:aud":
+                    Ref: FacialVoteIdentityPool
+                "ForAnyValue:StringLike":
+                  "cognito-identity.amazonaws.com:amr": authenticated
+        Policies:
+          - PolicyName: "CognitoAuthorizedPolicy"
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: "Allow"
+                  Action:
+                    - "mobileanalytics:PutEvents"
+                    - "cognito-sync:*"
+                    - "cognito-identity:*"
+                  Resource: "*"
+                - Effect: "Allow"
+                  Action:
+                    - "execute-api:Invoke"
+                  Resource: "*"
+                - Effect: "Allow"
+                  Action: 
+                    - "s3:GetObject"
+                    - "s3:ListAllMyBuckets"
+                    - "s3:PutObject"
+                  Resource:
+                  - Fn::Join:
+                    - ''
+                    -
+                      - Fn::GetAtt: [UploadedS3Bucket, Arn]
+                      - '/private/'
+                      - '$'
+                      - '{cognito-identity.amazonaws.com:sub}/*'
+
+    CognitoUnauthRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: ${self:service}_appUnauthRole
+        Path: /
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: "Allow"
+              Principal:
+                Federated: "cognito-identity.amazonaws.com"
+              Action:
+                - "sts:AssumeRoleWithWebIdentity"
+              Condition:
+                StringEquals:
+                  "cognito-identity.amazonaws.com:aud":
+                    Ref: FacialVoteIdentityPool
+                "ForAnyValue:StringLike":
+                  "cognito-identity.amazonaws.com:amr": unauthenticated
+        Policies:
+          - PolicyName: "CognitoUnauthorizedPolicy"
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: "Allow"
+                  Action:
+                    - "mobileanalytics:PutEvents"
+                    - "cognito-sync:*"
+                    - "cognito-identity:*"
+                  Resource: "*"
+                - Effect: "Allow"
+                  Action: 
+                    - "s3:GetObject"
+                    - "s3:PutObject"
+                  Resource:
+                  - Fn::Join:
+                    - ''
+                    -
+                      - Fn::GetAtt: [UploadedS3Bucket, Arn]
+                      - '/public/'
+                      - '$'
+                      - '{cognito-identity.amazonaws.com:sub}/*'
+    
+    UploadedS3Bucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:custom.uploaded_s3_bucket_name}
+        CorsConfiguration:
+          CorsRules:
+          - AllowedHeaders: 
+              - '*'
+            AllowedMethods: 
+              - HEAD
+              - GET
+              - PUT
+              - POST
+            AllowedOrigins: 
+              - '*'
+            ExposedHeaders:
+              - x-amz-server-side-encryption
+              - x-amz-request-id
+              - x-amz-id-2
+            MaxAge: 3000
 
     UserPoolPreSignUpLambdaPermission:
       Type: AWS::Lambda::Permission
@@ -108,3 +244,9 @@ resources:
         Principal: cognito-idp.amazonaws.com
         FunctionName: !Ref VerifyAuthChallengeResponseLambdaFunction
         SourceArn: !GetAtt FacialVoteUserPool.Arn
+
+# Print out the Id of the Identity Pool that is created
+outputs:
+  IdentityPoolId:
+    Value:
+      Ref: FacialVoteIdentityPool

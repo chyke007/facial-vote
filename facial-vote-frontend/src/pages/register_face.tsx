@@ -2,18 +2,12 @@ import { Amplify, Auth } from 'aws-amplify'
 import Head from 'next/head'
 import { useState } from 'react'
 import styles from 'src/styles/Register.module.css'
+import { awsExport } from 'src/utils/aws-export';
+import config from 'src/utils/config';
+import { s3Upload } from "src/utils/helpers";
 
 export default function Register_Face() {
-
-    Amplify.configure({
-        Auth: {
-            region: process.env.REGION,
-            userPoolId: process.env.USERPOOLID,
-            userPoolWebClientId: process.env.USERPOOLWEBCLIENTID,
-            mandatorySignIn: true
-        }
-    })
-
+    Amplify.configure(awsExport);
     enum Stages {
         RETRIEVE_ACCOUNT,
         VALIDATE_OTP,
@@ -23,6 +17,7 @@ export default function Register_Face() {
     const [stage, setStage] = useState(Stages.RETRIEVE_ACCOUNT);
     const [email, setEmail] = useState("");
     const [otp, setOtp] = useState("");
+    const [file, setFile] = useState(null as any);
     const [isSignedIn, setIsSignedIn] = useState(false);
     const [isloading, setIsloading] = useState(false)
     const [cognitoUser, setCognitoUser] = useState(null as any);
@@ -32,7 +27,7 @@ export default function Register_Face() {
     const handleSubmit = async (event: any) => {
         switch (stage) {
             case Stages.ADD_PHOTO:
-                console.log(3);
+                uploadImage(event)
                 break;
             case Stages.VALIDATE_OTP:
                 validateOtp(event);
@@ -65,26 +60,50 @@ export default function Register_Face() {
         setOtp(e.target.value)
     }
 
+    const selectFile = (e: any) => {
+        setFile(e.target.files);
+    }
+
     const retrieveAccount = async (event: any) => {
         event.preventDefault();
         const email = event.target.email.value;
-
         try {
             setIsloading(true);
             let user = await Auth.signIn(email);
             setCognitoUser(user);
             setIsloading(false);
-            console.log(user);
             setStage(Stages.VALIDATE_OTP);
             setAttemptsLeft(parseInt(cognitoUser.challengeParam.attemptsLeft));
 
         } catch (error: any) {
+            console.log(1, error)
             alert(error.message);
             setIsloading(false);
         }
     }
 
+    const uploadImage = async (event: any) => {
+        event.preventDefault();
+	  
+		if (file && file.size > config.MAX_ATTACHMENT_SIZE) {
+		  alert(`Please pick a file smaller than ${config.MAX_ATTACHMENT_SIZE/1000000} MB.`);
+		  return;
+		}
+	  
+		setIsloading(true)
+	  
+		try {
+		  await s3Upload(file[0], await Auth.currentUserInfo());  
+          alert("Success");
+          setIsloading(false);
+          signOut();
+		} catch (e) {
+		  alert(e);
+		  setIsloading(false);
+		}
+    }
     //sign out after image successful upload
+    //move back to step 1
     async function signOut() {
         await Auth.signOut()
         setCognitoUser(null);
@@ -102,7 +121,6 @@ export default function Register_Face() {
         try {
             setIsloading(true);
             const challengeResult = await Auth.sendCustomChallengeAnswer(cognitoUser, otp)
-            console.log(challengeResult)
             if (challengeResult.challengeName) {
                 setIsloading(false);
                 setOtp("");
@@ -153,6 +171,7 @@ export default function Register_Face() {
                         {stage == Stages.ADD_PHOTO && isSignedIn &&
 
                             <div className="my-2">
+                               <input className="border border-2 border-black text-black w-full py-2 px-3" required onChange={selectFile} id="file" type="file" name="file" accept="image/png,  image/jpg, image/jpeg" />
                             </div>
                         }
                         <div className="flex">
