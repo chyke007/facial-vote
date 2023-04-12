@@ -145,7 +145,7 @@ resources:
                     - ''
                     -
                       - Fn::GetAtt: [UploadedS3Bucket, Arn]
-                      - '/photos/'
+                      - '/private/'
                       - '$'
                       - '{cognito-identity.amazonaws.com:sub}/*'
 
@@ -188,7 +188,7 @@ resources:
                     - ''
                     -
                       - Fn::GetAtt: [UploadedS3Bucket, Arn]
-                      - '/compare/'
+                      - '/public/'
                       - '$'
                       - '{cognito-identity.amazonaws.com:sub}/*'
     

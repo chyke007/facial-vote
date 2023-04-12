@@ -2,13 +2,12 @@ import { Amplify, Auth } from 'aws-amplify'
 import Head from 'next/head'
 import { useState } from 'react'
 import styles from 'src/styles/Register.module.css'
-import awsExport from 'src/utils/aws-export';
+import { awsExport } from 'src/utils/aws-export';
 import config from 'src/utils/config';
 import { s3Upload } from "src/utils/helpers";
 
 export default function Register_Face() {
     Amplify.configure(awsExport);
-
     enum Stages {
         RETRIEVE_ACCOUNT,
         VALIDATE_OTP,
@@ -68,13 +67,11 @@ export default function Register_Face() {
     const retrieveAccount = async (event: any) => {
         event.preventDefault();
         const email = event.target.email.value;
-
         try {
             setIsloading(true);
             let user = await Auth.signIn(email);
             setCognitoUser(user);
             setIsloading(false);
-            console.log(user);
             setStage(Stages.VALIDATE_OTP);
             setAttemptsLeft(parseInt(cognitoUser.challengeParam.attemptsLeft));
 
@@ -92,22 +89,21 @@ export default function Register_Face() {
 		  alert(`Please pick a file smaller than ${config.MAX_ATTACHMENT_SIZE/1000000} MB.`);
 		  return;
 		}
-
-        if (file && file.type > config.MAX_ATTACHMENT_SIZE) {
-            alert(`Please pick a file smaller than ${config.MAX_ATTACHMENT_SIZE/1000000} MB.`);
-            return;
-          }
 	  
 		setIsloading(true)
 	  
 		try {
-		  await s3Upload(file);  
+		  await s3Upload(file[0], await Auth.currentUserInfo());  
+          alert("Success");
+          setIsloading(false);
+          signOut();
 		} catch (e) {
 		  alert(e);
 		  setIsloading(false);
 		}
     }
     //sign out after image successful upload
+    //move back to step 1
     async function signOut() {
         await Auth.signOut()
         setCognitoUser(null);
@@ -125,7 +121,6 @@ export default function Register_Face() {
         try {
             setIsloading(true);
             const challengeResult = await Auth.sendCustomChallengeAnswer(cognitoUser, otp)
-            console.log(challengeResult)
             if (challengeResult.challengeName) {
                 setIsloading(false);
                 setOtp("");

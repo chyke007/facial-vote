@@ -1,6 +1,6 @@
-import config from 'src/utils/config'
+import config from 'src/utils/config';
 
-export default {  
+export const awsExport =  {  
     Auth: {
         region: config.Cognito.REGION,
         userPoolId: config.Cognito.USER_POOL_ID,
