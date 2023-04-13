@@ -17,7 +17,7 @@ module.exports.handler = async (event) => {
     Attributes: ['ALL']
   }
 
-  await client.detectFaces(params, (err, response) => {
+  await client.searchFacesByImage(params, (err, response) => {
     if (err) {
       console.log(err, err.stack);
       res = {
@@ -26,17 +26,17 @@ module.exports.handler = async (event) => {
       };
       return;
     } else {
-      console.log(`Detected faces for: ${photo}`)
-      if (response.FaceDetails[0].Confidence < process.env.CONFIDENCE_FACE) {
+      console.log(`Found face for: ${photo}`);
+      if (response.FaceDetails.Confidence) {
         res = {
           status: 'ERROR',
-          value: "NO_FACE_DETECTED"
+          value: "FACE_ALREADY_EXIST"
         };
         return;
       } else {
         res = {
           status: 'SUCCESS',
-          value: { bucket, key }
+          value: { bucket, key, index: response }
         };
         return;
       }
