@@ -12,10 +12,11 @@ provider:
 
 custom:
   # replace with your verified SES domain
-  domain: work@chibuikenwa.com 
+  ses_domain: work@chibuikenwa.com 
   uploaded_s3_bucket_name: ${self:service}-facialvote
   rekognition_collection_name: ${self:service}-facialvote
   dynamodb_name: ${self:service}-facialvote
+  confidence_face: 90
 
 functions:
   preSignUp:
@@ -28,7 +29,7 @@ functions:
   createAuthChallenge:
     handler: src/functions/create-auth-challenge.handler
     environment:
-      SES_FROM_ADDRESS: ${self:custom.domain}
+      SES_FROM_ADDRESS: ${self:custom.ses_domain}
     iamRoleStatements:
       - Effect: Allow
         Action: ses:SendEmail
@@ -39,9 +40,55 @@ functions:
   verifyAuthChallengeResponse:
     handler: src/functions/verify-auth-challenge-response.handler
 
+  triggerSavePhoto:
+    handler: src/functions/stepfunctions/trigger-save-photo.handler
+    environment:
+      STATE_MACHINE_ARN: ${self:outputs.SaveFaceStateMachine.Value}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - "states:StartExecution"
+        Resource:
+          - "*"
+    events:
+      - s3:
+          bucket: ${self:custom.uploaded_s3_bucket_name}
+          event: s3:ObjectCreated:*
+          rules:
+            - prefix: private/
+          existing: true
+          forceDeploy: true
+  
+  triggerComparePhoto:
+    handler: src/functions/stepfunctions/trigger-compare-photo.handler
+    environment:
+      STATE_MACHINE_ARN: ${self:outputs.SaveFaceStateMachine.Value}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - "states:StartExecution"
+        Resource:
+          - "*"
+    events:
+      - s3:
+          bucket: ${self:custom.uploaded_s3_bucket_name}
+          event: s3:ObjectCreated:*
+          rules:
+            - prefix: public/
+          existing: true
+          forceDeploy: true
+
   validateFace:
     handler: src/functions/stepfunctions/savephoto/validate-face.handler
-  
+    environment:
+      CONFIDENCE_FACE: ${self:custom.confidence_face}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - rekognition:DetectFaces
+        Resource:
+          - "*"
+
   checkDuplicate:
     handler: src/functions/stepfunctions/savephoto/check-duplicate.handler
 
@@ -54,6 +101,7 @@ functions:
 stepFunctions:
   stateMachines:
     SaveFace:
+      name: SaveFaceMachine
       definition:
         Comment: "Indexes users photo to Amazon Rekongition and saves metadata to DynamoDb"
         StartAt: ValidateFace
@@ -356,10 +404,11 @@ resources:
         FunctionName: !Ref VerifyAuthChallengeResponseLambdaFunction
         SourceArn: !GetAtt FacialVoteUserPool.Arn
 
-
-
-# Print out the Id of the Identity Pool that is created
 outputs:
   IdentityPoolId:
     Value:
       Ref: FacialVoteIdentityPool
+  SaveFaceStateMachine:
+      Description: The ARN of the SaveFace state machine
+      Value:
+        Ref: SaveFaceMachine
