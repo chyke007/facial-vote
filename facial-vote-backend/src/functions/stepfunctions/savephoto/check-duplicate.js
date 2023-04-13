@@ -8,13 +8,15 @@ module.exports.handler = async (event) => {
 
   const client = new AWS.Rekognition();
   const params = {
+    CollectionId: process.env.COLLECTION_ID,
     Image: {
       S3Object: {
         Bucket: bucket,
         Name: key
       },
     },
-    Attributes: ['ALL']
+    MaxFaces: 1,
+    FaceMatchThreshold: process.env.CONFIDENCE_FACE
   }
 
   await client.searchFacesByImage(params, (err, response) => {
@@ -26,8 +28,7 @@ module.exports.handler = async (event) => {
       };
       return;
     } else {
-      console.log(`Found face for: ${photo}`);
-      if (response.FaceDetails.Confidence) {
+      if (response.FaceMatches.length > 0) {
         res = {
           status: 'ERROR',
           value: "FACE_ALREADY_EXIST"
@@ -36,7 +37,7 @@ module.exports.handler = async (event) => {
       } else {
         res = {
           status: 'SUCCESS',
-          value: { bucket, key, index: response }
+          value: { bucket, key }
         };
         return;
       }

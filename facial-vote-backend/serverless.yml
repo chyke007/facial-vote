@@ -91,13 +91,39 @@ functions:
 
   checkDuplicate:
     handler: src/functions/stepfunctions/savephoto/check-duplicate.handler
-
+    environment:
+      CONFIDENCE_FACE: ${self:custom.confidence_face}
+      COLLECTION_ID: ${self:custom.rekognition_collection_name}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - rekognition:SearchFacesByImage
+        Resource:
+          - "*"
+    
   indexFace:
     handler: src/functions/stepfunctions/savephoto/index-face.handler
+    environment:
+      CONFIDENCE_FACE: ${self:custom.confidence_face}
+      COLLECTION_ID: ${self:custom.rekognition_collection_name}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - rekognition:IndexFaces
+        Resource:
+          - "*"
 
   saveFaceDynamoDb:
     handler: src/functions/stepfunctions/savephoto/save-face-dynamodb.handler
-	
+    environment:
+      DYNAMODB_NAME: ${self:custom.dynamodb_name}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:PutItem
+        Resource:
+          - !GetAtt FacialVoteDB.Arn
+
 stepFunctions:
   stateMachines:
     SaveFace:
@@ -405,10 +431,11 @@ resources:
         SourceArn: !GetAtt FacialVoteUserPool.Arn
 
 outputs:
-  IdentityPoolId:
-    Value:
-      Ref: FacialVoteIdentityPool
   SaveFaceStateMachine:
       Description: The ARN of the SaveFace state machine
       Value:
         Ref: SaveFaceMachine
+  DynamoDbId:
+      Description: The ARN of the DynamoDB
+      Value:
+        Ref: FacialVoteDB

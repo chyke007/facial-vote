@@ -27,7 +27,7 @@ module.exports.handler = async (event) => {
       };
       return;
     } else {
-      console.log(`Detected face(s) for: ${photo}`)
+      console.log(`Detected face(s) for: ${key}`)
       if (response.FaceDetails[0].Confidence < process.env.CONFIDENCE_FACE) {
         res = {
           status: 'ERROR',
