@@ -27,7 +27,7 @@ module.exports.handler = async (event) => {
             value: err
         };
     } else {
-        if (result.FaceRecords.length > 0) {
+        if (response.FaceRecords.length > 0) {
             const faceId = response.FaceRecords[0].Face.FaceId
             res = {
                 status: 'SUCCESS',

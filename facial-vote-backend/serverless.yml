@@ -88,6 +88,11 @@ functions:
           - rekognition:DetectFaces
         Resource:
           - "*"
+      - Effect: Allow
+        Action:
+          - s3:*
+        Resource:
+          - "arn:aws:s3:::${self:custom.uploaded_s3_bucket_name}/*"
 
   checkDuplicate:
     handler: src/functions/stepfunctions/savephoto/check-duplicate.handler
@@ -100,6 +105,11 @@ functions:
           - rekognition:SearchFacesByImage
         Resource:
           - "*"
+      - Effect: Allow
+        Action:
+          - s3:*
+        Resource:
+          - "arn:aws:s3:::${self:custom.uploaded_s3_bucket_name}/*"
     
   indexFace:
     handler: src/functions/stepfunctions/savephoto/index-face.handler
@@ -112,6 +122,11 @@ functions:
           - rekognition:IndexFaces
         Resource:
           - "*"
+      - Effect: Allow
+        Action:
+          - s3:*
+        Resource:
+          - "arn:aws:s3:::${self:custom.uploaded_s3_bucket_name}/*"
 
   saveFaceDynamoDb:
     handler: src/functions/stepfunctions/savephoto/save-face-dynamodb.handler
@@ -357,8 +372,8 @@ resources:
     RekognitionCollection:
       Type: AWS::Rekognition::Collection
       Properties:
-         CollectionId: ${self:custom.rekognition_collection_name}
-    
+        CollectionId: ${self:custom.rekognition_collection_name}
+       
     #DynamoDB
     FacialVoteDB:
       Type: AWS::DynamoDB::Table

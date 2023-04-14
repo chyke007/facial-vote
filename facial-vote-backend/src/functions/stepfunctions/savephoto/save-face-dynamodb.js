@@ -1,4 +1,5 @@
 const AWS = require('aws-sdk');
+const dynamodb = new AWS.DynamoDB.DocumentClient();
 
 module.exports.handler = async (event) => {
   const { key, faceId } = event.value;
@@ -7,7 +8,7 @@ module.exports.handler = async (event) => {
   };
 
   let email = key.split('-');
-  email = email[email.length - 1];
+  email = email[email.length - 2];
 
   const dbParams = {
     TableName: process.env.DYNAMODB_NAME,
@@ -20,7 +21,7 @@ module.exports.handler = async (event) => {
     }
   };
 
-  await dynamodb.putItem(dbParams).promise();
+  await dynamodb.put(dbParams).promise();
 
   console.log(event);
   return res;
