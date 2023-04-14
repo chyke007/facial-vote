@@ -1,8 +1,7 @@
 const AWS = require('aws-sdk');
 
 module.exports.handler = async (event) => {
-  const input = event.Input;
-  const { bucket, key } = input.customParams;
+  const { bucket, key } = event;
   let res = {
     status: 'SUCCESS'
   };
@@ -18,32 +17,27 @@ module.exports.handler = async (event) => {
     Attributes: ['ALL']
   }
 
-  await client.detectFaces(params, (err, response) => {
-    if (err) {
-      console.log(err, err.stack);
+  const response = await client.detectFaces(params).promise();
+  if (!response) {
+    console.log(err, err.stack);
+    res = {
+      status: 'ERROR',
+      value: err
+    };
+  } else {
+    console.log(`Detected face(s) for: ${key}`)
+    if (response.FaceDetails[0].Confidence < process.env.CONFIDENCE_FACE) {
       res = {
         status: 'ERROR',
-        value: err
+        value: "NO_FACE_DETECTED"
       };
-      return;
     } else {
-      console.log(`Detected face(s) for: ${key}`)
-      if (response.FaceDetails[0].Confidence < process.env.CONFIDENCE_FACE) {
-        res = {
-          status: 'ERROR',
-          value: "NO_FACE_DETECTED"
-        };
-        return;
-      } else {
-        res = {
-          status: 'SUCCESS',
-          value: { bucket, key }
-        };
-        return;
-      }
+      res = {
+        status: 'SUCCESS',
+        value: { bucket, key }
+      };
     }
-  })
+  }
 
-  console.log(event);
   return res;
 };

@@ -19,35 +19,27 @@ module.exports.handler = async (event) => {
         DetectionAttributes: ['ALL']
     }
 
-    await client.indexFaces(params, (err, response) => {
-        if (err) {
-            console.log(err, err.stack);
+    const response = await client.indexFaces(params).promise();
+    if (!response) {
+        console.log(err, err.stack);
+        res = {
+            status: 'ERROR',
+            value: err
+        };
+    } else {
+        if (result.FaceRecords.length > 0) {
+            const faceId = response.FaceRecords[0].Face.FaceId
+            res = {
+                status: 'SUCCESS',
+                value: { bucket, key, faceId }
+            };
+        } else {
             res = {
                 status: 'ERROR',
-                value: err
+                value: "ERROR_INDEXING_FACE"
             };
-            return;
-        } else {
-
-            if (result.FaceRecords.length > 0) {
-                const faceId = response.FaceRecords[0].Face.FaceId
-                res = {
-                    status: 'SUCCESS',
-                    value: { bucket, key, faceId }
-                };
-                return;
-            } else {
-                res = {
-                    status: 'ERROR',
-                    value: "ERROR_INDEXING_FACE"
-                };
-                return;
-            }
-
-
         }
-    })
+    }
 
-    console.log(event);
     return res;
 };

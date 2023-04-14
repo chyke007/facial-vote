@@ -12,11 +12,17 @@ module.exports.handler = async (event) => {
     throw new Error("missing email")    
   }
 
-  let otpCode
+  let otpCode;
+  let email = event.request.userAttributes.email;
+  if(email){
+    //check if email is in dynamodb, if yes
+    //return to the user that face has been added
+  }
+
   if (!event.request.session || !event.request.session.length) {
     // new auth session
     otpCode = chance.string({ length: 6, alpha: false, symbols: false })
-    await sendEmail(event.request.userAttributes.email, otpCode)
+    await sendEmail(email, otpCode)
   } else {
     // existing session, user has provided a wrong answer, so we need to
     // give them another chance

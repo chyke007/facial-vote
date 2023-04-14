@@ -19,31 +19,26 @@ module.exports.handler = async (event) => {
     FaceMatchThreshold: process.env.CONFIDENCE_FACE
   }
 
-  await client.searchFacesByImage(params, (err, response) => {
-    if (err) {
-      console.log(err, err.stack);
+  let response = await client.searchFacesByImage(params).promise()
+  if (!response) {
+    console.log(err, err.stack);
+    res = {
+      status: 'ERROR',
+      value: err
+    };
+  } else {
+    if (response.FaceMatches.length > 0) {
       res = {
         status: 'ERROR',
-        value: err
+        value: "FACE_ALREADY_EXIST"
       };
-      return;
     } else {
-      if (response.FaceMatches.length > 0) {
-        res = {
-          status: 'ERROR',
-          value: "FACE_ALREADY_EXIST"
-        };
-        return;
-      } else {
-        res = {
-          status: 'SUCCESS',
-          value: { bucket, key }
-        };
-        return;
-      }
+      res = {
+        status: 'SUCCESS',
+        value: { bucket, key }
+      };
     }
-  })
+  }
 
-  console.log(event);
   return res;
 };

@@ -7,7 +7,7 @@ plugins:
   - serverless-pseudo-parameters
 provider:
   name: aws
-  runtime: nodejs18.x
+  runtime: nodejs16.x
   region: us-east-1
 
 custom:
@@ -329,14 +329,7 @@ resources:
                   Action: 
                     - "s3:GetObject"
                     - "s3:PutObject"
-                  Resource:
-                  - Fn::Join:
-                    - ''
-                    -
-                      - Fn::GetAtt: [UploadedS3Bucket, Arn]
-                      - '/public/'
-                      - '$'
-                      - '{cognito-identity.amazonaws.com:sub}/*'
+                  Resource: "arn:aws:s3:::${self:custom.uploaded_s3_bucket_name}/public/*"
     
     # S3 Bucket
     UploadedS3Bucket:
