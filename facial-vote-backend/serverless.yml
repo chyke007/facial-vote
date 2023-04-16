@@ -24,6 +24,8 @@ custom:
   rekognition_collection_name: ${self:service}-facialvote
   dynamodb_name: ${self:service}-facialvote
   iot_name: ${self:service}-facialvote
+  sts_user: ${self:service}-facialvote
+  sts_expiry: 3600
   confidence_face: 90
   region: us-east-1
 
@@ -193,6 +195,9 @@ functions:
     handler: src/functions/stepfunctions/comparephoto/generate-token.handler
     environment:
       IOT_ENDPOINT: !GetAtt IotEndpoint.IotEndpointAddress
+      STS_ACCESS_KEY: ${self:outputs.StsUserAccessKeyId.Value}
+      STS_SECRET_KEY: ${self:outputs.StsUserSecretKey.Value}
+      STS_EXPIRY: ${self:custom.sts_expiry}
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -229,6 +234,7 @@ functions:
           path: voting
           method: get
           cors: true
+          private: true
 
   vote:
     handler: src/functions/voting/add-vote.handler
@@ -452,9 +458,10 @@ resources:
                     - iot:Receive
                   Resource: "*"
                 - Effect: "Allow"
-                  Action:
-                    - "execute-api:Invoke"
-                  Resource: "*"
+                  Action: 
+                    - "s3:PutObject"
+                    - "s3:GetObject"
+                  Resource: "arn:aws:s3:::${self:custom.uploaded_s3_bucket_name}/public/*"
                 - Effect: "Allow"
                   Action: 
                     - "s3:GetObject"
@@ -507,8 +514,8 @@ resources:
                   Resource: "*"
                 - Effect: "Allow"
                   Action: 
-                    - "s3:GetObject"
                     - "s3:PutObject"
+                    - "s3:GetObject"
                   Resource: "arn:aws:s3:::${self:custom.uploaded_s3_bucket_name}/public/*"
     
     # S3 Bucket
@@ -705,6 +712,35 @@ resources:
       Properties:
         ServiceToken: !GetAtt GetIoTEndpoint.Arn
 
+    #IAM USER
+    StsUser:
+      Type: AWS::IAM::User
+      Properties:
+        UserName: ${self:custom.sts_user}
+        ManagedPolicyArns:
+        - !Ref SampleManagedPolicy
+
+    StsUserCredentials:
+      Type: AWS::IAM::AccessKey
+      Properties:
+        Status: Active
+        UserName: !Ref StsUser
+    
+    SampleManagedPolicy:
+      Type: AWS::IAM::ManagedPolicy
+      Properties: 
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - sts:*
+                - apigateway:*
+              Resource: "*"
+            - Effect: "Allow"
+              Action:
+                - execute-api:Invoke
+              Resource: "*"
 
     # Lambda permissions
     UserPoolPreSignUpLambdaPermission:
@@ -752,3 +788,9 @@ outputs:
       Description: The ARN of the DynamoDB
       Value:
         Ref: FacialVoteDB
+  StsUserAccessKeyId:
+      Value:
+        Ref: StsUserCredentials
+  StsUserSecretKey:
+      Value:
+        Fn::GetAtt: [ "StsUserCredentials", "SecretAccessKey" ]

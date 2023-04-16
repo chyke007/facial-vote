@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Navbar from 'src/components/Navbar';
 import { awsExport } from 'src/utils/aws-export';
 import config from 'src/utils/config';
-import { s3Upload } from "src/utils/helpers";
+import { s3Upload, s3UploadUnAuth } from "src/utils/helpers";
 
 export default function Vote() {
     Amplify.configure(awsExport);
@@ -76,12 +76,12 @@ export default function Vote() {
         setIsloading(true)
 
         try {
-            await s3Upload(file[0], await Auth.currentUserInfo());
+            await s3UploadUnAuth(file[0]);
             alert("Success");
             setIsloading(false);
 
             //Wait for AWS IoT before proceeding with an error message or success
-            //if succes, then signout user
+            //if succes, then proceed to next stpe with generated sts token
             //else remain on this step
             //signOut();
         } catch (e) {

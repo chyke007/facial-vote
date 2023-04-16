@@ -1,9 +1,9 @@
 const AWS = require('aws-sdk');
-const sts = new AWS.STS;
 const { publishToTopic, extractFileName } = require('../../../utils/helper');
 
 AWS.config.update({ region: process.env.AWS_REGION });
 
+const sts = new AWS.STS({ region: process.env.AWS_REGION, accessKeyId: process.env.STS_ACCESS_KEY, secretAccessKey: process.env.STS_SECRET_KEY });
 const iotClient = new AWS.IotData({ endpoint: process.env.IOT_ENDPOINT });
 
 module.exports.handler = async (event) => {
@@ -14,7 +14,7 @@ module.exports.handler = async (event) => {
     };
 
     const params = {
-        DurationSeconds: 3600
+        DurationSeconds: process.env.STS_EXPIRY
     };
 
     const credentials = await sts
