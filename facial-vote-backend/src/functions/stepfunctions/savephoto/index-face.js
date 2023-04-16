@@ -28,7 +28,7 @@ module.exports.handler = async (event) => {
         console.log(err, err.stack);
         res = {
             status: 'ERROR',
-            value: err
+            data: { key: err, value: null }
         };
     } else {
         if (response.FaceRecords.length > 0) {
@@ -40,7 +40,7 @@ module.exports.handler = async (event) => {
         } else {
             res = {
                 status: 'ERROR',
-                value: "ERROR_INDEXING_FACE"
+                data: { key: "ERROR_INDEXING_FACE", value: null }
             };
 
 

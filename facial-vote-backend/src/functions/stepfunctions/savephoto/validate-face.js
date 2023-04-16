@@ -26,14 +26,14 @@ module.exports.handler = async (event) => {
     console.log(err, err.stack);
     res = {
       status: 'ERROR',
-      value: err
+      data: { key: err, value: null }
     };
   } else {
     console.log(`Detected face(s) for: ${key}`)
     if (response.FaceDetails[0].Confidence < process.env.CONFIDENCE_FACE) {
       res = {
         status: 'ERROR',
-        value: "NO_FACE_DETECTED"
+        data: { key: "NO_FACE_DETECTED", value: null }
       };
 
       await publishToTopic(iotClient, extractEmail(key), res);

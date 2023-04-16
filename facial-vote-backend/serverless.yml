@@ -9,6 +9,11 @@ provider:
   name: aws
   runtime: nodejs16.x
   region: us-east-1
+  apiGateway:
+    apiKeys:
+      - ${env:VOTE_KEY}
+        description: Api key for voting 
+    
 
 custom:
   # replace with your verified SES domain
@@ -64,7 +69,7 @@ functions:
   triggerComparePhoto:
     handler: src/functions/stepfunctions/trigger-compare-photo.handler
     environment:
-      STATE_MACHINE_ARN: ${self:outputs.SaveFaceStateMachine.Value}
+      STATE_MACHINE_ARN: ${self:outputs.CompareFaceStateMachine.Value}
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -160,6 +165,48 @@ functions:
         - iot:*
         Resource: '*'
 
+  checkForFace:
+    handler: src/functions/stepfunctions/comparephoto/check-face.handler
+    environment:
+      CONFIDENCE_FACE: ${self:custom.confidence_face}
+      COLLECTION_ID: ${self:custom.rekognition_collection_name}
+      IOT_ENDPOINT: !GetAtt IotEndpoint.IotEndpointAddress
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - rekognition:SearchFacesByImage
+        Resource:
+          - "*"
+      - Effect: Allow
+        Action:
+          - s3:*
+        Resource:
+          - "arn:aws:s3:::${self:custom.uploaded_s3_bucket_name}/*"
+      - Effect: Allow
+        Action:
+        - iot:*
+        Resource: '*'
+
+  generateToken:
+    handler: src/functions/stepfunctions/comparephoto/generate-token.handler
+    environment:
+      IOT_ENDPOINT: !GetAtt IotEndpoint.IotEndpointAddress
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - sts:*
+        Resource:
+          - "*"
+      - Effect: Allow
+        Action:
+          - s3:*
+        Resource:
+          - "arn:aws:s3:::${self:custom.uploaded_s3_bucket_name}/*"
+      - Effect: Allow
+        Action:
+        - iot:*
+        Resource: '*'
+
   getVotingInProgress:
     handler: src/functions/voting/get-voting-in-progress.handler
     memorySize: 128
@@ -180,12 +227,34 @@ functions:
           path: voting
           method: get
 
+  vote:
+    handler: src/functions/voting/add-vote.handler
+    memorySize: 128
+    description: Adds users vote
+    environment:
+      DYNAMODB_NAME: ${self:custom.dynamodb_name}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+          - dynamodb:GetItem
+          - dynamodb:PutItem
+        Resource:
+          - !GetAtt FacialVoteDB.Arn
+    events:
+      - http: 
+          path: voting
+          method: post
+          cors: true
+          private: true
+          authorizer: aws_iam
+
 stepFunctions:
   stateMachines:
     SaveFace:
       name: SaveFaceMachine
       definition:
-        Comment: "Indexes users photo to Amazon Rekongition and saves metadata to DynamoDb"
+        Comment: "Indexes users photo to Amazon Rekognition and saves metadata to DynamoDb"
         StartAt: ValidateFace
         States:
           ValidateFace:
@@ -235,7 +304,47 @@ stepFunctions:
             Type: Succeed
           Fail:
             Type: Fail
-
+    CompareFace:
+      name: CompareFaceMachine
+      definition:
+        Comment: "Retrieves indexed face from Amazon Rekognition and compares with uploaded face"
+        StartAt: ValidateFace
+        States:
+          ValidateFace:
+            Type: Task
+            Resource: !GetAtt validateFace.Arn 
+            Next: IsFaceValidated
+          IsFaceValidated:
+            Type: Choice
+            Choices:
+            - Variable: "$.status"
+              StringEquals: SUCCESS
+              Next: CheckForFace
+            - Variable: "$.status"
+              StringEquals: ERROR
+              Next: Fail
+          CheckForFace:
+            Type: Task
+            Resource: !GetAtt checkForFace.Arn
+            Next: IsFaceFound
+          IsFaceFound:
+            Type: Choice
+            Choices:
+            - Variable: "$.status"
+              StringEquals: SUCCESS
+              Next: GenerateToken
+            - Variable: "$.status"
+              StringEquals: ERROR
+              Next: Fail
+          GenerateToken:
+            Type: Task
+            Resource: !GetAtt generateToken.Arn
+            Next: Success
+          Success:
+            Type: Succeed
+          Fail:
+            Type: Fail
+    
 
 resources:
   Resources:   
@@ -632,6 +741,10 @@ outputs:
       Description: The ARN of the SaveFace state machine
       Value:
         Ref: SaveFaceMachine
+  CompareFaceStateMachine:
+      Description: The ARN of the CompareFace state machine
+      Value:
+        Ref: CompareFaceMachine
   DynamoDbId:
       Description: The ARN of the DynamoDB
       Value:

@@ -10,25 +10,12 @@ module.exports.handler = async (event) => {
   const { key, faceId } = event.value;
   let res = {
     status: 'SUCCESS',
-    data: { key: "IMAGE_ADDED", value: null }
+    data: { key: "IMAGE_ADDED", value: "token"}
   };
 
-  let email = extractEmail(key)
-
-  const dbParams = {
-    TableName: process.env.DYNAMODB_NAME,
-    Item: {
-      PK: `FACE_ENTRY#${email}`,
-      SK: `${faceId}#${key}`,
-      Key: key,
-      Email: email,
-      FaceId: faceId,
-    }
-  };
-
-  await dynamodb.put(dbParams).promise();
+  
   await publishToTopic(iotClient, email, res);
-
+  
   console.log(event);
   return res;
 };
