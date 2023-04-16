@@ -1,10 +1,11 @@
 import { Amplify, Auth } from 'aws-amplify'
-import Head from 'next/head'
-import { useState } from 'react'
+import Head from 'next/head';
+import { useState } from 'react';
 import Navbar from 'src/components/Navbar';
 import { awsExport } from 'src/utils/aws-export';
 import config from 'src/utils/config';
 import { s3Upload } from "src/utils/helpers";
+const mqtt = require('mqtt')
 
 export default function Register_Face() {
     Amplify.configure(awsExport);
@@ -13,7 +14,7 @@ export default function Register_Face() {
         VALIDATE_OTP,
         ADD_PHOTO
     }
-
+   
     const [stage, setStage] = useState(Stages.RETRIEVE_ACCOUNT);
     const [email, setEmail] = useState("");
     const [otp, setOtp] = useState("");
@@ -73,7 +74,7 @@ export default function Register_Face() {
             setCognitoUser(user);
             setIsloading(false);
             setStage(Stages.VALIDATE_OTP);
-            setAttemptsLeft(parseInt(cognitoUser.challengeParam.attemptsLeft));
+            setAttemptsLeft(parseInt(cognitoUser.challengeParam?.attemptsLeft));
 
         } catch (error: any) {
             console.log(1, error)
@@ -84,27 +85,28 @@ export default function Register_Face() {
 
     const uploadImage = async (event: any) => {
         event.preventDefault();
-	  
-		if (file && file.size > config.MAX_ATTACHMENT_SIZE) {
-		  alert(`Please pick a file smaller than ${config.MAX_ATTACHMENT_SIZE/1000000} MB.`);
-		  return;
-		}
-	  
-		setIsloading(true)
-	  
-		try {
-		  await s3Upload(file[0], await Auth.currentUserInfo());  
-          alert("Success");
-          setIsloading(false);
-          
-          //Wait for AWS IoT before proceeding with an error message or success
-          //if succes, then signout user
-          //else remain on this step
-          //signOut();
-		} catch (e) {
-		  alert(e);
-		  setIsloading(false);
-		}
+
+        if (file && file.size > config.MAX_ATTACHMENT_SIZE) {
+            alert(`Please pick a file smaller than ${config.MAX_ATTACHMENT_SIZE / 1000000} MB.`);
+            return;
+        }
+
+        setIsloading(true);
+        // subscribe to topic with name user_email
+
+        try {
+            await s3Upload(file[0], await Auth.currentUserInfo());
+            alert("Success");
+            setIsloading(false);
+
+            //Wait for AWS IoT before proceeding with an error message or success
+            //if succes, then signout user
+            //else remain on this step
+            //signOut();
+        } catch (e) {
+            alert(e);
+            setIsloading(false);
+        }
     }
     //sign out after image successful upload
     //move back to step 1
@@ -128,7 +130,7 @@ export default function Register_Face() {
             if (challengeResult.challengeName) {
                 setIsloading(false);
                 setOtp("");
-                setAttemptsLeft(parseInt(challengeResult.challengeParam.attemptsLeft))
+                setAttemptsLeft(parseInt(challengeResult.challengeParam?.attemptsLeft))
                 alert(`The code you entered is incorrect. ${attemptsLeft} attempts left.`)
             } else {
                 setIsSignedIn(true);
@@ -152,8 +154,8 @@ export default function Register_Face() {
                 <link rel="icon" href="/favicon.ico" />
             </Head>
             <main className="">
-            <Navbar />
-            <section className="flex lg:flex-row flex-col flex-col-reverse py-4 justify-center lg:mt-0 lg:h-screen h-auto overflow-hidden  text-white px-6">
+                <Navbar />
+                <section className="flex lg:flex-row flex-col flex-col-reverse py-4 justify-center lg:mt-0 lg:h-screen h-auto overflow-hidden  text-white px-6">
 
                     <form onSubmit={handleSubmit} className="flex flex-col justify-center lg:w-1/3 px-4 pt-2 pb-8 mb-4 h-full ">
                         <p className="text-black bg-white p-2 rounded-md">
@@ -176,7 +178,7 @@ export default function Register_Face() {
                         {stage == Stages.ADD_PHOTO && isSignedIn &&
 
                             <div className="my-2">
-                               <input className="border border-2 border-black text-black w-full py-2 px-3" required onChange={selectFile} id="file" type="file" name="file" accept="image/png,  image/jpg, image/jpeg" />
+                                <input className="border border-2 border-black text-black w-full py-2 px-3" required onChange={selectFile} id="file" type="file" name="file" accept="image/png,  image/jpg, image/jpeg" />
                             </div>
                         }
                         <div className="flex">

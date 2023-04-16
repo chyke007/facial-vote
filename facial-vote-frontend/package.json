@@ -9,18 +9,27 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@aws-sdk/credential-providers": "^3.312.0",
     "@types/node": "18.15.11",
     "@types/react": "18.0.34",
     "@types/react-dom": "18.0.11",
     "autoprefixer": "10.4.14",
     "aws-amplify": "^5.0.25",
+    "aws-iot-device-sdk-v2": "^1.11.0",
+    "aws-mqtt-client": "0.0.6",
     "eslint": "8.38.0",
     "eslint-config-next": "13.3.0",
+    "i": "^0.3.7",
+    "mqtt": "^4.3.7",
     "next": "13.3.0",
+    "npm": "^9.6.4",
     "postcss": "8.4.21",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "tailwindcss": "3.3.1",
     "typescript": "5.0.4"
+  },
+  "devDependencies": {
+    "@types/aws-iot-device-sdk": "^2.2.4"
   }
 }

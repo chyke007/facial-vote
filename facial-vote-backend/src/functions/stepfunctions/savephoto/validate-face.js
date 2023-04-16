@@ -1,4 +1,8 @@
 const AWS = require('aws-sdk');
+const { publishToTopic, extractEmail } = require('../../../utils/helper');
+
+AWS.config.update({ region: process.env.AWS_REGION })
+const iotClient = new AWS.IotData({ endpoint: process.env.IOT_ENDPOINT });
 
 module.exports.handler = async (event) => {
   const { bucket, key } = event;
@@ -31,6 +35,8 @@ module.exports.handler = async (event) => {
         status: 'ERROR',
         value: "NO_FACE_DETECTED"
       };
+
+      await publishToTopic(iotClient, extractEmail(key), res);
     } else {
       res = {
         status: 'SUCCESS',

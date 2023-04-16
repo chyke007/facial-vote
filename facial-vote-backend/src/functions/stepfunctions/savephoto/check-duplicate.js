@@ -1,7 +1,11 @@
 const AWS = require('aws-sdk');
+const { publishToTopic, extractEmail } = require('../../../utils/helper');
+AWS.config.update({region: process.env.AWS_REGION})
+const iotClient = new AWS.IotData({ endpoint: process.env.IOT_ENDPOINT });
 
 module.exports.handler = async (event) => {
   const { bucket, key } = event.value;
+  
   let res = {
     status: 'SUCCESS'
   };
@@ -32,6 +36,8 @@ module.exports.handler = async (event) => {
         status: 'ERROR',
         value: "FACE_ALREADY_EXIST"
       };
+
+      await publishToTopic(iotClient, extractEmail(key), res);
     } else {
       res = {
         status: 'SUCCESS',

@@ -1,14 +1,19 @@
 const AWS = require('aws-sdk');
 const dynamodb = new AWS.DynamoDB.DocumentClient();
+const { publishToTopic, extractEmail } = require('../../../utils/helper');
+
+AWS.config.update({ region: process.env.AWS_REGION });
+
+const iotClient = new AWS.IotData({ endpoint: process.env.IOT_ENDPOINT });
 
 module.exports.handler = async (event) => {
   const { key, faceId } = event.value;
   let res = {
-    status: 'SUCCESS'
+    status: 'SUCCESS',
+    vlaue: "IMAGE_ADDED"
   };
 
-  let email = key.split('-');
-  email = email[email.length - 2];
+  let email = extractEmail(key)
 
   const dbParams = {
     TableName: process.env.DYNAMODB_NAME,
@@ -22,7 +27,8 @@ module.exports.handler = async (event) => {
   };
 
   await dynamodb.put(dbParams).promise();
-
+  await publishToTopic(iotClient, email, res);
+  
   console.log(event);
   return res;
 };

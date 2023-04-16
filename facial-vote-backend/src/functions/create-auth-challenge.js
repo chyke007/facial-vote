@@ -3,7 +3,7 @@ const Chance = require('chance')
 const chance = new Chance()
 const { SESv2 } = require("@aws-sdk/client-sesv2");
 const ses = new SESv2()
-const { MAX_ATTEMPTS } = require('../helpers/constant')
+const { MAX_ATTEMPTS } = require('../utils/constant')
 
 const { SES_FROM_ADDRESS } = process.env
 

@@ -16,7 +16,9 @@ custom:
   uploaded_s3_bucket_name: ${self:service}-facialvote
   rekognition_collection_name: ${self:service}-facialvote
   dynamodb_name: ${self:service}-facialvote
+  iot_name: ${self:service}-facialvote
   confidence_face: 90
+  region: us-east-1
 
 functions:
   preSignUp:
@@ -82,6 +84,7 @@ functions:
     handler: src/functions/stepfunctions/savephoto/validate-face.handler
     environment:
       CONFIDENCE_FACE: ${self:custom.confidence_face}
+      IOT_ENDPOINT: !GetAtt IotEndpoint.IotEndpointAddress
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -93,12 +96,17 @@ functions:
           - s3:*
         Resource:
           - "arn:aws:s3:::${self:custom.uploaded_s3_bucket_name}/*"
+      - Effect: Allow
+        Action:
+        - iot:*
+        Resource: '*'
 
   checkDuplicate:
     handler: src/functions/stepfunctions/savephoto/check-duplicate.handler
     environment:
       CONFIDENCE_FACE: ${self:custom.confidence_face}
       COLLECTION_ID: ${self:custom.rekognition_collection_name}
+      IOT_ENDPOINT: !GetAtt IotEndpoint.IotEndpointAddress
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -110,12 +118,16 @@ functions:
           - s3:*
         Resource:
           - "arn:aws:s3:::${self:custom.uploaded_s3_bucket_name}/*"
+      - Effect: Allow
+        Action:
+        - iot:*
+        Resource: '*'
     
   indexFace:
     handler: src/functions/stepfunctions/savephoto/index-face.handler
     environment:
-      CONFIDENCE_FACE: ${self:custom.confidence_face}
       COLLECTION_ID: ${self:custom.rekognition_collection_name}
+      IOT_ENDPOINT: !GetAtt IotEndpoint.IotEndpointAddress
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -127,17 +139,46 @@ functions:
           - s3:*
         Resource:
           - "arn:aws:s3:::${self:custom.uploaded_s3_bucket_name}/*"
+      - Effect: Allow
+        Action:
+        - iot:*
+        Resource: '*'
 
   saveFaceDynamoDb:
     handler: src/functions/stepfunctions/savephoto/save-face-dynamodb.handler
     environment:
       DYNAMODB_NAME: ${self:custom.dynamodb_name}
+      IOT_ENDPOINT: !GetAtt IotEndpoint.IotEndpointAddress
     iamRoleStatements:
       - Effect: Allow
         Action:
           - dynamodb:PutItem
         Resource:
           - !GetAtt FacialVoteDB.Arn
+      - Effect: Allow
+        Action:
+        - iot:*
+        Resource: '*'
+
+  getVotingInProgress:
+    handler: src/functions/voting/get-voting-in-progress.handler
+    memorySize: 128
+    description: Gets all active voting processes
+    environment:
+      DYNAMODB_NAME: ${self:custom.dynamodb_name}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+          - dynamodb:Scan
+          - dynamodb:GetItem
+          - dynamodb:PutItem
+        Resource:
+          - !GetAtt FacialVoteDB.Arn
+    events:
+      - http: 
+          path: voting
+          method: get
 
 stepFunctions:
   stateMachines:
@@ -243,7 +284,7 @@ resources:
       Type: AWS::Cognito::IdentityPool
       Properties:
         IdentityPoolName: facial_vote_upload_identity_pool
-        AllowUnauthenticatedIdentities: false
+        AllowUnauthenticatedIdentities: true
         CognitoIdentityProviders:
           - ClientId:
               Ref: FacialVoteUserPoolClient
@@ -292,6 +333,12 @@ resources:
                     - "cognito-sync:*"
                     - "cognito-identity:*"
                   Resource: "*"
+                - Effect: Allow
+                  Action:
+                    - iot:Connect
+                    - iot:Subscribe
+                    - iot:Receive
+                  Resource: "*"
                 - Effect: "Allow"
                   Action:
                     - "execute-api:Invoke"
@@ -339,6 +386,12 @@ resources:
                     - "mobileanalytics:PutEvents"
                     - "cognito-sync:*"
                     - "cognito-identity:*"
+                  Resource: "*"
+                - Effect: Allow
+                  Action:
+                    - iot:Connect
+                    - iot:Subscribe
+                    - iot:Receive
                   Resource: "*"
                 - Effect: "Allow"
                   Action: 
@@ -404,6 +457,142 @@ resources:
             Projection:
               ProjectionType: 'ALL'
         BillingMode: PAY_PER_REQUEST
+
+    #IoT
+
+    IOTRealtime:
+      Type: "AWS::IoT::Thing"
+      Properties:
+        ThingName: ${self:custom.iot_name}
+        AttributePayload:
+          Attributes: {}
+
+    GetIoTEndpoint:
+      Type: "AWS::Lambda::Function"
+      Properties:
+        FunctionName: ${self:service}-getIoTEndpoint
+        Handler: index.handler
+        Runtime: nodejs16.x
+        Code:
+          ZipFile: |
+            const aws = require("aws-sdk")
+
+            exports.handler = function (event, context) {
+              console.log("REQUEST RECEIVED:\n" + JSON.stringify(event))
+
+              // For Delete requests, immediately send a SUCCESS response.
+              if (event.RequestType == "Delete") {
+                sendResponse(event, context, "SUCCESS")
+                return
+              }
+
+              const iot = new aws.Iot()
+              iot.describeEndpoint({
+                endpointType: "iot:Data-ATS",
+              }, (err, data) => {
+                let responseData, responseStatus
+                if (err) {
+                  responseStatus = "FAILED"
+                  responseData = { Error: "describeEndpoint call failed" }
+                  console.log(responseData.Error + ":\n", err)
+                } else {
+                  responseStatus = "SUCCESS"
+                  responseData = { IotEndpointAddress: data.endpointAddress }
+                  console.log("response data: " + JSON.stringify(responseData))
+                }
+
+                sendResponse(event, context, responseStatus, responseData)
+              })
+            }
+
+            // Send response to the pre-signed S3 URL
+            function sendResponse(event, context, responseStatus, responseData) {
+              let responseBody = JSON.stringify({
+                Status: responseStatus,
+                Reason: `CloudWatch Log Stream: ${context.logStreamName}`,
+                PhysicalResourceId: context.logStreamName,
+                StackId: event.StackId,
+                RequestId: event.RequestId,
+                LogicalResourceId: event.LogicalResourceId,
+                Data: responseData,
+              })
+
+              console.log("RESPONSE BODY:\n", responseBody)
+
+              const https = require("https")
+              const url = require("url")
+
+              let parsedUrl = url.parse(event.ResponseURL)
+              let options = {
+                hostname: parsedUrl.hostname,
+                port: 443,
+                path: parsedUrl.path,
+                method: "PUT",
+                headers: {
+                  "content-type": "",
+                  "content-length": responseBody.length,
+                },
+              }
+
+              console.log("SENDING RESPONSE...\n")
+
+              const request = https.request(options, function (response) {
+                console.log("STATUS: " + response.statusCode)
+                console.log("HEADERS: " + JSON.stringify(response.headers))
+                // Tell AWS Lambda that the function execution is done
+                context.done()
+              })
+
+              request.on("error", function (error) {
+                console.log("sendResponse Error:" + error)
+                // Tell AWS Lambda that the function execution is done
+                context.done()
+              })
+
+              // write data to request body
+              request.write(responseBody)
+              request.end()
+              }
+        Role: !GetAtt LambdaFunctionRoleIoT.Arn
+
+    LambdaFunctionRoleIoT:
+      Type: 'AWS::IAM::Role'
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action:
+                  - 'sts:AssumeRole'
+        Policies:
+          - PolicyName: lambda-policy
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - logs:CreateLogGroup
+                    - logs:CreateLogStream
+                    - logs:PutLogEvents
+                  Resource: "*"
+                - Effect: Allow
+                  Action:
+                    - iot:DescribeEndpoint
+                  Resource: '*'
+
+    GetIoTEndpointLogGroup:
+      Type: AWS::Logs::LogGroup
+      Properties:
+        LogGroupName: !Ref GetIoTEndpoint
+
+    IotEndpoint:
+      Type: 'Custom::IotEndpoint'
+      Properties:
+        ServiceToken: !GetAtt GetIoTEndpoint.Arn
+
 
     # Lambda permissions
     UserPoolPreSignUpLambdaPermission:
