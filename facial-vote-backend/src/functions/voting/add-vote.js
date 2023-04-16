@@ -5,19 +5,10 @@ const dynamodb = new AWS.DynamoDB.DocumentClient();
 
 module.exports.handler = async (event, context, callback) => {
 
-    const dbParams = {
-        TableName: process.env.DYNAMODB_NAME,
-        KeyConditionExpression: 'begins_with(PK, :pk)',
-        ExpressionAttributeValues: {
-            ":pk": "VOTING#"
-        }
-    }
-
-    const results = await dynamodb.query(dbParams).promise();
-    //get all voting in progress
+    //Add vote
     const response = {
         statusCode: 200,
-        body: JSON.stringify(results),
+        body: JSON.stringify(event),
     };
 
     callback(null, response);

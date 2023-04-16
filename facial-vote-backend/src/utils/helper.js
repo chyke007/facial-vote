@@ -4,6 +4,14 @@ exports.extractEmail = (key) => {
     return email
 }
 
+
+exports.extractFileName = (key) => {
+    let fileName = key.split('/');
+    fileName = fileName[fileName.length - 1];
+    return fileName
+}
+
+
 exports.publishToTopic = async (client, topic, payload) => {
 
     try {

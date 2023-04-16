@@ -5,19 +5,21 @@ plugins:
   - serverless-iam-roles-per-function
   - serverless-step-functions
   - serverless-pseudo-parameters
+  - serverless-dotenv-plugin
+
+useDotenv: true
+
 provider:
   name: aws
   runtime: nodejs16.x
   region: us-east-1
   apiGateway:
     apiKeys:
-      - ${env:VOTE_KEY}
-        description: Api key for voting 
-    
+      - vote-key
 
 custom:
   # replace with your verified SES domain
-  ses_domain: work@chibuikenwa.com 
+  ses_domain: ${env:SES_DOMAIN} 
   uploaded_s3_bucket_name: ${self:service}-facialvote
   rekognition_collection_name: ${self:service}-facialvote
   dynamodb_name: ${self:service}-facialvote
@@ -226,6 +228,7 @@ functions:
       - http: 
           path: voting
           method: get
+          cors: true
 
   vote:
     handler: src/functions/voting/add-vote.handler

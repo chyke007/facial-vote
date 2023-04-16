@@ -7,9 +7,10 @@ module.exports.handler = async (event, context, callback) => {
 
     const dbParams = {
         TableName: process.env.DYNAMODB_NAME,
-        KeyConditionExpression: 'begins_with(PK, :pk)',
+        KeyConditionExpression: 'PK=:pk and begins_with(SK, :sk)',
         ExpressionAttributeValues: {
-            ":pk": "VOTING#"
+            ":pk": "VOTING#",
+            ":sk": "true#"
         }
     }
 
