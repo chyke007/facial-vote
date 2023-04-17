@@ -1,8 +1,9 @@
 const AWS = require('aws-sdk');
 const { publishToTopic, extractEmail } = require('../../../utils/helper');
+const { IOT_ENDPOINT, AWS_REGION, COLLECTION_ID } = process.env
 
-AWS.config.update({ region: process.env.AWS_REGION })
-const iotClient = new AWS.IotData({ endpoint: process.env.IOT_ENDPOINT });
+AWS.config.update({ region: AWS_REGION })
+const iotClient = new AWS.IotData({ endpoint: IOT_ENDPOINT });
 
 module.exports.handler = async (event) => {
     const { bucket, key } = event.value;
@@ -12,7 +13,7 @@ module.exports.handler = async (event) => {
 
     const client = new AWS.Rekognition();
     const params = {
-        CollectionId: process.env.COLLECTION_ID,
+        CollectionId: COLLECTION_ID,
         Image: {
             S3Object: {
                 Bucket: bucket,

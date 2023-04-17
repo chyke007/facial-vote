@@ -3,14 +3,15 @@
 const AWS = require('aws-sdk');
 const dynamodb = new AWS.DynamoDB.DocumentClient();
 
+const { DYNAMODB_NAME } = process.env
+
 module.exports.handler = async (event, context, callback) => {
 
     const dbParams = {
-        TableName: process.env.DYNAMODB_NAME,
-        KeyConditionExpression: 'PK=:pk and begins_with(SK, :sk)',
+        TableName: DYNAMODB_NAME,
+        KeyConditionExpression: 'PK=:pk',
         ExpressionAttributeValues: {
-            ":pk": "VOTING#",
-            ":sk": "true#"
+            ":pk": "VOTING#true"
         }
     }
 

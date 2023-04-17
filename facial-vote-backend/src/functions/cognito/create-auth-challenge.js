@@ -3,9 +3,12 @@ const Chance = require('chance')
 const chance = new Chance()
 const { SESv2 } = require("@aws-sdk/client-sesv2");
 const ses = new SESv2()
-const { MAX_ATTEMPTS } = require('../utils/constant')
+const { MAX_ATTEMPTS, FACE_ALREADY_ADDED } = require('../../utils/constant');
+const { SES_FROM_ADDRESS, DYNAMODB_NAME, IOT_ENDPOINT } = process.env
 
-const { SES_FROM_ADDRESS } = process.env
+
+const dynamodb = new AWS.DynamoDB.DocumentClient();
+const iotClient = new AWS.IotData({ endpoint: IOT_ENDPOINT });
 
 module.exports.handler = async (event) => {
   if (!event.request.userAttributes.email) {
@@ -14,9 +17,27 @@ module.exports.handler = async (event) => {
 
   let otpCode;
   let email = event.request.userAttributes.email;
+
+  let res = {
+    status: 'ERROR',
+    data: { key: FACE_ALREADY_ADDED, value: email }
+  };
+
   if(email){
-    //check if email is in dynamodb, if yes
-    //return to the user that face has been added
+    const dbParams = {
+      TableName: DYNAMODB_NAME,
+      KeyConditionExpression: 'PK=:pk',
+      ExpressionAttributeValues: {
+          ":pk": `FACE_ENTRY#${email}`
+      }
+  }
+
+  const results = await dynamodb.query(dbParams).promise();
+  if(results.Count >= 1){
+
+    await publishToTopic(iotClient, email, res);
+    return event;
+  }
   }
 
   if (!event.request.session || !event.request.session.length) {

@@ -1,10 +1,11 @@
 const AWS = require('aws-sdk');
 const dynamodb = new AWS.DynamoDB.DocumentClient();
 const { publishToTopic, extractEmail } = require('../../../utils/helper');
+const { IOT_ENDPOINT, AWS_REGION, DYNAMODB_NAME } = process.env
 
-AWS.config.update({ region: process.env.AWS_REGION });
+AWS.config.update({ region: AWS_REGION });
 
-const iotClient = new AWS.IotData({ endpoint: process.env.IOT_ENDPOINT });
+const iotClient = new AWS.IotData({ endpoint: IOT_ENDPOINT });
 
 module.exports.handler = async (event) => {
   const { key, faceId } = event.value;
@@ -16,7 +17,7 @@ module.exports.handler = async (event) => {
   let email = extractEmail(key)
 
   const dbParams = {
-    TableName: process.env.DYNAMODB_NAME,
+    TableName: DYNAMODB_NAME,
     Item: {
       PK: `FACE_ENTRY#${email}`,
       SK: `${faceId}#${key}`,

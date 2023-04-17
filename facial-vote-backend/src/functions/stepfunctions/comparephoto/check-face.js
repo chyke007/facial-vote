@@ -1,8 +1,10 @@
 const AWS = require('aws-sdk');
+const { NO_FACE_FOUND } = require('../../../utils/constant');
 const { publishToTopic, extractEmail } = require('../../../utils/helper');
+const { IOT_ENDPOINT, AWS_REGION,COLLECTION_ID, CONFIDENCE_FACE } = process.env
 
-AWS.config.update({region: process.env.AWS_REGION})
-const iotClient = new AWS.IotData({ endpoint: process.env.IOT_ENDPOINT });
+AWS.config.update({region: AWS_REGION})
+const iotClient = new AWS.IotData({ endpoint: IOT_ENDPOINT });
 
 module.exports.handler = async (event) => {
   const { bucket, key } = event.value;
@@ -13,7 +15,7 @@ module.exports.handler = async (event) => {
 
   const client = new AWS.Rekognition();
   const params = {
-    CollectionId: process.env.COLLECTION_ID,
+    CollectionId: COLLECTION_ID,
     Image: {
       S3Object: {
         Bucket: bucket,
@@ -21,7 +23,7 @@ module.exports.handler = async (event) => {
       },
     },
     MaxFaces: 1,
-    FaceMatchThreshold: process.env.CONFIDENCE_FACE
+    FaceMatchThreshold: CONFIDENCE_FACE
   }
 
   let response = await client.searchFacesByImage(params).promise()
@@ -35,7 +37,7 @@ module.exports.handler = async (event) => {
     if (response.FaceMatches.length < 1) {
       res = {
         status: 'ERROR',
-        data: { key: "NO_FACE_FOUND", value: null }
+        data: { key: NO_FACE_FOUND, value: null }
       };
 
       await publishToTopic(iotClient, extractEmail(key), res);
