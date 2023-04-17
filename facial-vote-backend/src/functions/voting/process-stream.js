@@ -10,7 +10,7 @@ const iotClient = new AWS.IotData({ endpoint: IOT_ENDPOINT });
 exports.handler = (event, context, callback) => {
     let res = {
         status: 'SUCCESS',
-        data: { key: null, value: null }
+        data: { key: VOTE_ADDED, value: null }
       };
 
     event.Records.forEach(async (record) => {
@@ -22,15 +22,21 @@ exports.handler = (event, context, callback) => {
         // if user want to get new result without realtime
         //they can refresh which would pull from VOTES#VOTING_ID
         // and show based on candidate grouping
+
         if (record.eventName == 'INSERT') {
-            var who = JSON.stringify(record.dynamodb.NewImage);
+            console.log(record.dynamodb.Keys.PK.S)
+            if(!(record.dynamodb.Keys.PK.S.slice(0, 5) == 'VOTES')){
+                return;
+            }
+            var { candidate_id, voting_id } = record.dynamodb.NewImage;
             
             var params = {
-                candidate_id: who,
-                voting_id: ''
+                candidate_id: candidate_id.S, voting_id: voting_id.S
             };
-            res.data.value = params
-             await publishToTopic(iotClient, VOTE_ADDED, res);
+            res.data.value = params;
+
+            console.log(params)
+            await publishToTopic(iotClient, VOTE_ADDED, res);
         }
     });
     callback(null, `Successfully processed ${event.Records.length} records.`);

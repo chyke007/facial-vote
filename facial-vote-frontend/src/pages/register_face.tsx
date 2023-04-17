@@ -1,6 +1,6 @@
 import { Amplify, Auth } from 'aws-amplify'
 import Head from 'next/head';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Navbar from 'src/components/Navbar';
 import { awsExport } from 'src/utils/aws-export';
 import config from 'src/utils/config';
@@ -14,7 +14,7 @@ export default function Register_Face() {
         VALIDATE_OTP,
         ADD_PHOTO
     }
-   
+    
     const [stage, setStage] = useState(Stages.RETRIEVE_ACCOUNT);
     const [email, setEmail] = useState("");
     const [otp, setOtp] = useState("");
@@ -74,10 +74,8 @@ export default function Register_Face() {
             setCognitoUser(user);
             setIsloading(false);
             setStage(Stages.VALIDATE_OTP);
-            setAttemptsLeft(parseInt(cognitoUser.challengeParam?.attemptsLeft));
-
         } catch (error: any) {
-            console.log(1, error)
+            console.log(error.message)
             alert(error.message);
             setIsloading(false);
         }
@@ -111,12 +109,15 @@ export default function Register_Face() {
     //sign out after image successful upload
     //move back to step 1
     async function signOut() {
-        await Auth.signOut()
+        try{
+            await Auth.signOut()
+        }catch(err){
+            console.log(err)
+        }
         setCognitoUser(null);
         setOtp("");
         setIsSignedIn(false);
         setStage(Stages.RETRIEVE_ACCOUNT);
-        console.log(await Auth.currentUserInfo())
     }
 
     const validateOtp = async (event: any) => {

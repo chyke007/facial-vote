@@ -1,9 +1,11 @@
+const AWS = require('aws-sdk');
 const _ = require('lodash')
 const Chance = require('chance')
 const chance = new Chance()
 const { SESv2 } = require("@aws-sdk/client-sesv2");
 const ses = new SESv2()
 const { MAX_ATTEMPTS, FACE_ALREADY_ADDED } = require('../../utils/constant');
+const { publishToTopic } = require('../../utils/helper');
 const { SES_FROM_ADDRESS, DYNAMODB_NAME, IOT_ENDPOINT } = process.env
 
 
@@ -36,7 +38,7 @@ module.exports.handler = async (event) => {
   if(results.Count >= 1){
 
     await publishToTopic(iotClient, email, res);
-    return event;
+    throw new Error("Face already added to provided email")    
   }
   }
 
