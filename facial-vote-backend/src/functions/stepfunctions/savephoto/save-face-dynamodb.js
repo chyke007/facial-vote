@@ -21,6 +21,8 @@ module.exports.handler = async (event) => {
     Item: {
       PK: `FACE_ENTRY#${email}`,
       SK: `${faceId}#${key}`,
+      GS1PK: `FACE_ENTRY#${faceId}`,
+      GS1SK: `${email}#${key}`,
       key: key,
       email: email,
       face_id: faceId,

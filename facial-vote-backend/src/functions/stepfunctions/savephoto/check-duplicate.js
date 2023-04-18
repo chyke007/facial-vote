@@ -1,4 +1,5 @@
 const AWS = require('aws-sdk');
+const { FACE_ALREADY_ADDED } = require('../../../utils/constant');
 const { publishToTopic, extractEmail } = require('../../../utils/helper');
 const { IOT_ENDPOINT, AWS_REGION, COLLECTION_ID, CONFIDENCE_FACE } = process.env
 
@@ -36,7 +37,7 @@ module.exports.handler = async (event) => {
     if (response.FaceMatches.length > 0) {
       res = {
         status: 'ERROR',
-        data: { key: "FACE_ALREADY_EXIST", value: null }
+        data: { key: FACE_ALREADY_ADDED, value: null }
       };
 
       await publishToTopic(iotClient, extractEmail(key), res);

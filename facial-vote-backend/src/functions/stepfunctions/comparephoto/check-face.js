@@ -44,7 +44,7 @@ module.exports.handler = async (event) => {
     } else {
       res = {
         status: 'SUCCESS',
-        value: { bucket, key }
+        value: { bucket, key, faceId: response.FaceMatches[0].Face.FaceId }
       };
     }
   }

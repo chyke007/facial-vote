@@ -240,7 +240,6 @@ functions:
           - dynamodb:Query
           - dynamodb:Scan
           - dynamodb:GetItem
-          - dynamodb:PutItem
         Resource:
           - !GetAtt FacialVoteDB.Arn
     events:

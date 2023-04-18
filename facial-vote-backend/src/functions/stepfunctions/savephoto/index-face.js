@@ -1,4 +1,5 @@
 const AWS = require('aws-sdk');
+const { ERROR_INDEXING_FACE } = require('../../../utils/constant');
 const { publishToTopic, extractEmail } = require('../../../utils/helper');
 const { IOT_ENDPOINT, AWS_REGION, COLLECTION_ID } = process.env
 
@@ -41,7 +42,7 @@ module.exports.handler = async (event) => {
         } else {
             res = {
                 status: 'ERROR',
-                data: { key: "ERROR_INDEXING_FACE", value: null }
+                data: { key: ERROR_INDEXING_FACE, value: null }
             };
 
 

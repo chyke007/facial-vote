@@ -10,7 +10,7 @@ module.exports.handler = async (event, context, callback) => {
     //Add vote
 
     //before add, check
-    //status, date range, id valid
+    //status, date range, id valid, candidate valid, user valid
     //create to dynamodb trigger lambda
     const response = {
         statusCode: 200,
