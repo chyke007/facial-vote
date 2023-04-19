@@ -30,6 +30,7 @@ custom:
   iot_name: ${self:service}-facialvote
   sts_user: ${self:service}-facialvote
   sts_expiry: 900
+  jwt_expiry: 15m
   confidence_face: 90
   region: us-east-1
 
@@ -215,6 +216,7 @@ functions:
       STS_ACCESS_KEY: ${self:outputs.StsUserAccessKeyId.Value}
       STS_SECRET_KEY: ${self:outputs.StsUserSecretKey.Value}
       STS_EXPIRY: ${self:custom.sts_expiry}
+      JWT_EXPIRY: ${self:custom.jwt_expiry}
       JWT_ISSUER: ${self:custom.jwt_issuer} 
       JWT_AUDIENCE: ${self:custom.jwt_audience}
       JWT_SUBJECT: ${self:custom.jwt_subject}
@@ -262,9 +264,9 @@ functions:
     description: Adds users vote
     environment:
       DYNAMODB_NAME: ${self:custom.dynamodb_name}
-      JWT_ISSUER: ${self:custom.jwt_issuer}, 
-      JWT_AUDIENCE: ${self:custom.jwt_audience},
-      JWT_SUBJECT: ${self:custom.jwt_subject},
+      JWT_ISSUER: ${self:custom.jwt_issuer} 
+      JWT_AUDIENCE: ${self:custom.jwt_audience}
+      JWT_SUBJECT: ${self:custom.jwt_subject}
       JWT_SECRET: ${self:custom.jwt_secret}
     iamRoleStatements:
       - Effect: Allow
@@ -272,15 +274,17 @@ functions:
           - dynamodb:Query
           - dynamodb:GetItem
           - dynamodb:PutItem
+          - dynamodb:Scan
         Resource:
           - !GetAtt FacialVoteDB.Arn
+          - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${self:custom.dynamodb_name}/*
     events:
       - http: 
           path: vote
           method: post
           cors: true
           private: true
-          # authorizer: aws_iam
+          authorizer: aws_iam
 
   processStream:
     handler: src/functions/voting/process-stream.handler

@@ -19,7 +19,6 @@
     "aws-sdk": "^2.961.0",
     "eslint": "8.38.0",
     "eslint-config-next": "13.3.0",
-    "fs": "0.0.1-security",
     "i": "^0.3.7",
     "next": "13.3.0",
     "npm": "^9.6.4",

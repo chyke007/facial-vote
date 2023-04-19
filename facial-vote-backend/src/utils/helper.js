@@ -1,6 +1,6 @@
 const jose = require('jose');
 const { 
-    STS_EXPIRY: expiry, 
+    JWT_EXPIRY: expiry, 
     JWT_ISSUER: issuer, 
     JWT_AUDIENCE: audience,
     JWT_SUBJECT: subject,
@@ -41,18 +41,14 @@ exports.publishToTopic = async (client, topic, payload) => {
 
 exports.generateJwt = async (value) => {
     const secrethash = jose.base64url.decode(secret);
-    console.log({subject, expiry, issuer, audience, value, secret, secrethash})
-
     const jwt = await new  jose.EncryptJWT(value)
     .setProtectedHeader({ alg: "dir", enc: "A256GCM" })
     .setIssuedAt()
     .setIssuer(issuer)
     .setAudience(audience)
     .setSubject(subject)
-    .setExpirationTime(Number(expiry))
+    .setExpirationTime(expiry)
     .encrypt(secrethash);
-
-    console.log(jwt)
     return jwt
 }
 

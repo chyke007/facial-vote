@@ -1,86 +1,172 @@
 
 'use strict';
 const AWS = require('aws-sdk');
-const { v4: uuidv4 } = require('uuid');
+const dayjs = require('dayjs')
 const { decodeJwt } = require('../../utils/helper');
 const dynamodb = new AWS.DynamoDB.DocumentClient();
 
 const { DYNAMODB_NAME } = process.env
-// uuidv4(); // ⇨ '1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed'
 
 const validateVoting = async (votingId) => {
-    //checks if voting exist
-    //throw error or return voting
-    return true;
+    try {
+        const dbParams = {
+            TableName: DYNAMODB_NAME,
+            KeyConditionExpression: 'PK=:pk and begins_with(SK, :sk)',
+            ExpressionAttributeValues: {
+                ":pk": `VOTING#true`,
+                ":sk": `${votingId}`
+            }
+        }
+
+        const results = await dynamodb.query(dbParams).promise();
+        
+        if (!(results && results.Items.length == 1)) {
+            console.log("Voting category doesnt exist");
+            return false
+        }
+        return results.Items[0];
+    } catch (e) {
+        return false
+    }
 }
 
 const validateCandidate = async (payload, candidateId) => {
-    //checks for candidateid in array or candidates
-    return true;
+    const candidates = JSON.parse(payload.candidates)
+    return candidates.find(({ id }) => id === candidateId);
 }
 
 const validateUser = async (userId) => {
-    //unsign and decrpt face_id
+
     try {
-        const user = await decodeJwt(userId) || null
-        //then search for user in dynamodb
-        console.log(user)
+        const user = await decodeJwt(userId);
+        const dbParams = {
+            TableName: DYNAMODB_NAME,
+            IndexName: 'GS1',
+            KeyConditionExpression: 'GS1PK=:pk',
+            ExpressionAttributeValues: {
+                ":pk": `FACE_ENTRY#${user.payload.faceId}`
+            }
+        }
+
+        const results = await dynamodb.query(dbParams).promise();
+
+        if (!(results && results.Items.length == 1)) {
+            console.log("User face doesnt exist");
+            return false
+        }
         return user;
-    } catch (err) {
-        throw err
+    } catch (e) {
+        return false
     }
 
-}
 
-const getVoting = async () => {
-    return true;
 }
 
 const checkDateRange = async (voting) => {
-    // gets range and compares if  time is expired
-    //cheks if time has started
-    return true;
+
+    let res = { error: false }
+    
+    if(dayjs().isBefore(dayjs(voting.time_start))){
+        res.error = "Voting hasn't begun";
+    }else if(dayjs().isAfter(dayjs(voting.time_end))){
+        res.error = "Voting has ended";
+    }
+    return res;
 }
 
-module.exports.handler = async (event, context, callback) => {
-    const { voting_id, candidate_id, user_id } = JSON.parse(event.body);
-
-    const res = {
-        statusCode: 200,
-        body: null,
-    };
-
+const validateUserCanVote = async (votingId, userId) => {
     try {
-        if (!voting_id || !candidate_id || !user_id) {
-            res.statusCode = 400;
-            res.body = 'Please provide all details'
-            return callback(null, res)
+        const dbParams = {
+            TableName: DYNAMODB_NAME,
+            KeyConditionExpression: 'PK=:pk and begins_with(SK, :sk)',
+            ExpressionAttributeValues: {
+                ":pk": `VOTES#${votingId}`,
+                ":sk": `${userId}#`
+            }
         }
 
-        const decryptedUser = await validateUser(user_id);
-        const voting = await validateVoting(voting_id)
-        await validateCandidate(voting, candidate_id)
-        await checkDateRange(voting);
-        console.log("User: ", decryptedUser)
-        // const dbParams = {
-        //     TableName: DYNAMODB_NAME,
-        //     Item: {
-        //       PK: `VOTES#${voting_id}`,
-        //       SK: `${user_id}#${candidate_id}`,
-        //       voting_id,
-        //       user_id,
-        //       candidate_id
-        //     }
-        //   };
-        // console.log(dbParams)
-        // await dynamodb.put(dbParams).promise();
+        const results = await dynamodb.query(dbParams).promise();
+        
+        if (results && results.Items.length == 1) {
+            console.log(1, `${userId} already voted in ${votingId}`);
+            return false
+        }
+        return true;
+    } catch (e) {
+        return false
+    }
+}
 
-        res.body = "Vote added"
-        callback(null, res);
+const setErrorResponse = (message, statusCode = 400) => {
 
-    } catch (err) {
-        throw err
+    const res = {
+        statusCode,
+        body: JSON.stringify({
+            error: {
+                message
+            }
+        })
+    }
+    return res
+}
+
+const setSuccessResponse = (message, statusCode = 400) => {
+
+    const res = {
+        statusCode,
+        body: JSON.stringify({
+            message
+        })
+    }
+    return res
+}
+
+module.exports.handler = async (event) => {
+    const { voting_id, candidate_id, user_id } = JSON.parse(event.body);
+
+    if (!voting_id || !candidate_id || !user_id) {
+        return setErrorResponse('Please provide all details')
     }
 
+    const decryptedUser = await validateUser(user_id);
     
+    if (!decryptedUser) {
+        return setErrorResponse('Token expired, kindly reupload your face to vote')
+    }
+    const voting = await validateVoting(voting_id);
+    if (!voting) {
+        return setErrorResponse('Vote category not found')
+    }
+
+    const candidate = await validateCandidate(voting, candidate_id);
+
+    if (!candidate) {
+        return setErrorResponse('Candidate not found');
+    }
+
+    const canVote = await validateUserCanVote(voting_id, decryptedUser.payload.faceId);
+
+    if (!canVote) {
+        return setErrorResponse('Already voted');
+    }
+
+    const range = await checkDateRange(voting);
+
+    if (range.error) {
+        return setErrorResponse(range.error);
+    }
+
+    const dbParams = {
+        TableName: DYNAMODB_NAME,
+        Item: {
+          PK: `VOTES#${voting_id}`,
+          SK: `${decryptedUser.payload.faceId}#${candidate_id}`,
+          voting_id,
+          user_id: decryptedUser.payload.faceId,
+          candidate_id
+        }
+      };
+    await dynamodb.put(dbParams).promise();
+
+    return setSuccessResponse("Vote added");
 };
