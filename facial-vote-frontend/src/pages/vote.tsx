@@ -1,36 +1,38 @@
-import { Amplify, Auth } from 'aws-amplify'
+import { Auth } from 'aws-amplify'
 import Head from 'next/head'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Navbar from 'src/components/Navbar';
-import { awsExport } from 'src/utils/aws-export';
 import config from 'src/utils/config';
-import { s3Upload, s3UploadUnAuth } from "src/utils/helpers";
+import { s3UploadUnAuth } from "src/utils/helpers";
+import Iot from 'src/utils/Iot';
 
 export default function Vote() {
-    Amplify.configure(awsExport);
     enum Stages {
         VALIDATE_PHOTO,
-        SELECT_VOTE,
         VOTE
     }
 
     const [stage, setStage] = useState(Stages.VALIDATE_PHOTO);
-    const [email, setEmail] = useState("");
-    const [otp, setOtp] = useState("");
+    const [candidate_id, setVoteId] = useState(0);
+    const [vote_id, setCandidateId] = useState(0);
     const [file, setFile] = useState(null as any);
-    const [isSignedIn, setIsSignedIn] = useState(false);
     const [isloading, setIsloading] = useState(false)
-    const [cognitoUser, setCognitoUser] = useState(null as any);
+    const [credentials, setCredentials] = useState(null as any);
+    const [mqttClient, setMqttClient] = useState(null as any)
 
-    const [attemptsLeft, setAttemptsLeft] = useState(3);
+
+    const setupIoT = async () => {
+        setMqttClient(await Iot(addTopicListeners))
+        
+    }
+    useEffect(() => {
+        setupIoT().catch(console.error);
+      }, [])
 
     const handleSubmit = async (event: any) => {
         switch (stage) {
             case Stages.VALIDATE_PHOTO:
                 uploadImage(event)
-                break;
-            case Stages.SELECT_VOTE:
-                retrieveVoteDetails(event);
                 break;
             case Stages.VOTE:
                 submitVote(event);
@@ -45,19 +47,17 @@ export default function Vote() {
         switch (stage) {
             case Stages.VALIDATE_PHOTO:
                 return "Authenticate";
-            case Stages.SELECT_VOTE:
-                return "Next";
             case Stages.VOTE:
-                return "Submit";
+                return "Vote";
         }
     }
 
-    const handleEmailChange = (e: any) => {
-        setEmail(e.target.value)
+    const handleCandidateIdChange = (e: any) => {
+        setCandidateId(e.target.value)
     }
 
-    const handleOtpChange = (e: any) => {
-        setOtp(e.target.value)
+    const handleVoteIdChange = (e: any) => {
+        setVoteId(e.target.value)
     }
 
     const selectFile = (e: any) => {
@@ -76,14 +76,11 @@ export default function Vote() {
         setIsloading(true)
 
         try {
-            await s3UploadUnAuth(file[0]);
-            alert("Success");
-            setIsloading(false);
+            const fileName =  `${Date.now()}-${file[0].name}`;
+            
+            mqttClient.subscribe(fileName);
 
-            //Wait for AWS IoT before proceeding with an error message or success
-            //if succes, then proceed to next stpe with generated sts token
-            //else remain on this step
-            //signOut();
+            await s3UploadUnAuth(file[0], fileName);
         } catch (e) {
             alert(e);
             setIsloading(false);
@@ -91,15 +88,25 @@ export default function Vote() {
     }
     //sign out after image successful upload
     //move back to step 1
-    async function signOut() {
-        await Auth.signOut()
-        setCognitoUser(null);
-        setOtp("");
-        setIsSignedIn(false);
-        setStage(Stages.VALIDATE_PHOTO);
-        console.log(await Auth.currentUserInfo())
-    }
+    
+    const addTopicListeners = (client: any) => {
+        client.on('message', function (topic: string, payload: any) {
+            const payloadEnvelope = JSON.parse(payload.toString())
 
+            setIsloading(false);
+            switch (payloadEnvelope.status) {
+                case 'ERROR':
+                  alert(payloadEnvelope.data.key);
+                  break
+                case 'SUCCESS':
+                  alert("Face added successfully!")
+                  console.log(payloadEnvelope.data.value)
+                  setCredentials(payloadEnvelope.data.value)
+                  setStage(Stages.VOTE)
+                  break
+            }
+        })
+    }
     const retrieveVoteDetails = async (event: any) => {
         event.preventDefault();
 
@@ -137,15 +144,11 @@ export default function Vote() {
 </div>
 }
 
-                        {stage == Stages.SELECT_VOTE &&
-                            <div className="my-4">
-                                <input className="appearance-none border w-full py-2 px-3 text-black leading-tight focus:outline-none focus:shadow-outline" required value={email} onChange={handleEmailChange} id="email" type="email" name="email" placeholder="Email" />
-                            </div>
-                        }
+                        
                         {stage == Stages.VOTE &&
 
                             <div className="my-2">
-                                <input className=" appearance-none border w-full py-2 px-3 text-black leading-tight focus:outline-none focus:shadow-outline" required value={otp} onChange={handleOtpChange} id="otp" type="text" name="otp" placeholder="Enter OTP (check email)" />
+                                <input className=" appearance-none border w-full py-2 px-3 text-black leading-tight focus:outline-none focus:shadow-outline" required value={candidate_id} onChange={handleCandidateIdChange} id="otp" type="text" name="otp" placeholder="Enter OTP (check email)" />
                             </div>
                         }
 

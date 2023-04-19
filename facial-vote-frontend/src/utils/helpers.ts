@@ -8,11 +8,10 @@ export async function s3Upload(file: any, user: any) {
   return stored.key;
 }
 
-export async function s3UploadUnAuth(file: any) {
+export async function s3UploadUnAuth(file: any, fileName: string) {
   Storage.configure({ level: 'public' });
 
-  const filename = `${Date.now()}-${file.name}`;
-  const stored = await Storage.put(filename, file, {
+  const stored = await Storage.put(fileName, file, {
     contentType: file.type
   });
   return stored.key;

@@ -1,6 +1,6 @@
 const AWS = require('aws-sdk');
 const { NO_FACE_FOUND } = require('../../../utils/constant');
-const { publishToTopic, extractEmail } = require('../../../utils/helper');
+const { publishToTopic, extractFileName } = require('../../../utils/helper');
 const { IOT_ENDPOINT, AWS_REGION,COLLECTION_ID, CONFIDENCE_FACE } = process.env
 
 AWS.config.update({region: AWS_REGION})
@@ -40,7 +40,7 @@ module.exports.handler = async (event) => {
         data: { key: NO_FACE_FOUND, value: null }
       };
 
-      await publishToTopic(iotClient, extractEmail(key), res);
+      await publishToTopic(iotClient, extractFileName(key), res);
     } else {
       res = {
         status: 'SUCCESS',
