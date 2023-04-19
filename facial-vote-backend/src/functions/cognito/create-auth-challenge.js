@@ -10,7 +10,6 @@ const { SES_FROM_ADDRESS, DYNAMODB_NAME, IOT_ENDPOINT } = process.env
 
 
 const dynamodb = new AWS.DynamoDB.DocumentClient();
-const iotClient = new AWS.IotData({ endpoint: IOT_ENDPOINT });
 
 module.exports.handler = async (event) => {
   if (!event.request.userAttributes.email) {
@@ -20,10 +19,6 @@ module.exports.handler = async (event) => {
   let otpCode;
   let email = event.request.userAttributes.email;
 
-  let res = {
-    status: 'ERROR',
-    data: { key: FACE_ALREADY_ADDED, value: email }
-  };
 
   if(email){
     const dbParams = {
@@ -36,8 +31,6 @@ module.exports.handler = async (event) => {
 
   const results = await dynamodb.query(dbParams).promise();
   if(results.Count >= 1){
-
-    await publishToTopic(iotClient, email, res);
     throw new Error("Face already added to provided email")    
   }
   }

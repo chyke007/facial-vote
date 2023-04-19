@@ -32,18 +32,18 @@ module.exports.handler = async (event) => {
     };
   } else {
     console.log(`Detected face(s) for: ${key}`)
-    if (response.FaceDetails[0].Confidence < CONFIDENCE_FACE) {
+    if (response.FaceDetails && response.FaceDetails[0] && response.FaceDetails[0].Confidence >= CONFIDENCE_FACE) {
+      res = {
+        status: 'SUCCESS',
+        value: { bucket, key }
+      };
+    } else {
       res = {
         status: 'ERROR',
         data: { key: NO_FACE_DETECTED_IN_PHOTO, value: null }
       };
 
       await publishToTopic(iotClient, extractEmail(key), res);
-    } else {
-      res = {
-        status: 'SUCCESS',
-        value: { bucket, key }
-      };
     }
   }
 

@@ -1,3 +1,12 @@
+const jose = require('jose');
+const { 
+    STS_EXPIRY: expiry, 
+    JWT_ISSUER: issuer, 
+    JWT_AUDIENCE: audience,
+    JWT_SUBJECT: subject,
+    JWT_SECRET: secret
+} = process.env
+
 exports.extractEmail = (key) => {
     let email = key.split('-');
     email = email[email.length - 2];
@@ -28,4 +37,32 @@ exports.publishToTopic = async (client, topic, payload) => {
         console.error('iotPublish error:', err)
     }
 
+}
+
+exports.generateJwt = async (value) => {
+    const secrethash = jose.base64url.decode(secret);
+    console.log({subject, expiry, issuer, audience, value, secret, secrethash})
+
+    const jwt = await new  jose.EncryptJWT(value)
+    .setProtectedHeader({ alg: "dir", enc: "A256GCM" })
+    .setIssuedAt()
+    .setIssuer(issuer)
+    .setAudience(audience)
+    .setSubject(subject)
+    .setExpirationTime(Number(expiry))
+    .encrypt(secrethash);
+
+    console.log(jwt)
+    return jwt
+}
+
+exports.decodeJwt = async (jwt) => {
+    const secrethash = jose.base64url.decode(secret);
+    const options = {
+		issuer,
+		audience,
+		contentEncryptionAlgorithms: ["A256GCM"],
+		keyManagementAlgorithms: ["dir"],
+	};
+    return await jose.jwtDecrypt(jwt, secrethash, options);
 }

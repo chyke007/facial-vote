@@ -1,11 +1,13 @@
 import { Amplify, Auth } from 'aws-amplify'
 import Head from 'next/head';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Navbar from 'src/components/Navbar';
 import { awsExport } from 'src/utils/aws-export';
 import config from 'src/utils/config';
 import { s3Upload } from "src/utils/helpers";
-const mqtt = require('mqtt')
+
+const AWS = require('aws-sdk')
+const AWSIoTData = require('aws-iot-device-sdk')
 
 export default function Register_Face() {
     Amplify.configure(awsExport);
@@ -22,8 +24,72 @@ export default function Register_Face() {
     const [isSignedIn, setIsSignedIn] = useState(false);
     const [isloading, setIsloading] = useState(false)
     const [cognitoUser, setCognitoUser] = useState(null as any);
+    const [mqttClient, setMqttClient] = useState(null as any)
 
     const [attemptsLeft, setAttemptsLeft] = useState(3);
+
+    const iotConnect = useCallback(async () => {
+        const AWSConfiguration = {
+            poolId: awsExport.Auth.identityPoolId,
+            host: config.IoT.endpoint,
+            region: awsExport.Auth.region,
+          }
+    
+        const clientId = 'facialvote-' + (Math.floor((Math.random() * 100000) + 1))
+          AWS.config.region = AWSConfiguration.region
+          AWS.config.credentials = new AWS.CognitoIdentityCredentials({
+            IdentityPoolId: AWSConfiguration.poolId
+          })
+    
+          const creds = await getCreds();
+          
+          const mqttClient = AWSIoTData.device({
+            region: AWS.config.region,
+            host: AWSConfiguration.host,
+            clientId: clientId,
+            protocol: 'wss',
+            maximumReconnectTimeMs: 8000,
+            debug: false,
+            accessKeyId: creds.Credentials.AccessKeyId,
+            secretKey: creds.Credentials.SecretKey,
+            sessionToken: creds.Credentials.SessionToken
+          })
+
+          setMqttClient(mqttClient);
+          mqttClient.on('connect', function () {
+            console.log('mqttClient connected')
+          })
+    
+    }, [])
+
+    const getCreds = async (): Promise<any> => {
+      const cognitoIdentity = new AWS.CognitoIdentity()
+      return new Promise((resolve, reject) => {
+        AWS.config.credentials.get(function (err: any) {
+          if (!err) {
+            const params = {
+                IdentityId: AWS.config.credentials.identityId
+            }
+            cognitoIdentity.getCredentialsForIdentity(params, function (err: any, data: any) {
+              if (!err) {
+                resolve(data)
+              } else {
+                console.log('Error retrieving credentials: ' + err)
+                reject(err)
+              }
+            })
+          } else {
+            console.log('Error retrieving identity:' + err)
+            reject(err)
+          }
+        })
+      })
+    }
+
+    useEffect(() => {
+        iotConnect()
+        .catch(console.error);;
+    }, [iotConnect])
 
     const handleSubmit = async (event: any) => {
         switch (stage) {
@@ -88,26 +154,15 @@ export default function Register_Face() {
             alert(`Please pick a file smaller than ${config.MAX_ATTACHMENT_SIZE / 1000000} MB.`);
             return;
         }
-
         setIsloading(true);
-        // subscribe to topic with name user_email
-
         try {
             await s3Upload(file[0], await Auth.currentUserInfo());
-            alert("Success");
-            setIsloading(false);
-
-            //Wait for AWS IoT before proceeding with an error message or success
-            //if succes, then signout user
-            //else remain on this step
-            //signOut();
         } catch (e) {
             alert(e);
             setIsloading(false);
         }
     }
-    //sign out after image successful upload
-    //move back to step 1
+    
     async function signOut() {
         try{
             await Auth.signOut()
@@ -116,6 +171,7 @@ export default function Register_Face() {
         }
         setCognitoUser(null);
         setOtp("");
+        setEmail("")
         setIsSignedIn(false);
         setStage(Stages.RETRIEVE_ACCOUNT);
     }
@@ -137,6 +193,8 @@ export default function Register_Face() {
                 setIsSignedIn(true);
                 setIsloading(false);
                 setStage(Stages.ADD_PHOTO);
+                mqttClient.subscribe(cognitoUser.username);
+                addTopicListeners();
             }
         } catch (error) {
             setOtp("");
@@ -144,6 +202,24 @@ export default function Register_Face() {
             setStage(Stages.RETRIEVE_ACCOUNT);
             alert('Too many failed attempts. Please try again.');
         }
+    }
+
+    const addTopicListeners = () => {
+        mqttClient.on('message', function (topic: string, payload: any) {
+            const payloadEnvelope = JSON.parse(payload.toString())
+
+            setIsloading(false);
+            switch (payloadEnvelope.status) {
+                case 'ERROR':
+
+                  alert(payloadEnvelope.data.key);
+                  break
+                case 'SUCCESS':
+                  alert("Face added successfully!")
+                  signOut();
+                  break
+            }
+        })
     }
 
     return (

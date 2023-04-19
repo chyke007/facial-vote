@@ -15,12 +15,12 @@
     "@types/react-dom": "18.0.11",
     "autoprefixer": "10.4.14",
     "aws-amplify": "^5.0.25",
-    "aws-iot-device-sdk-v2": "^1.11.0",
-    "aws-mqtt-client": "0.0.6",
+    "aws-iot-device-sdk": "^2.2.11",
+    "aws-sdk": "^2.961.0",
     "eslint": "8.38.0",
     "eslint-config-next": "13.3.0",
+    "fs": "0.0.1-security",
     "i": "^0.3.7",
-    "mqtt": "^4.3.7",
     "next": "13.3.0",
     "npm": "^9.6.4",
     "postcss": "8.4.21",
@@ -31,5 +31,14 @@
   },
   "devDependencies": {
     "@types/aws-iot-device-sdk": "^2.2.4"
+  },
+  "browser": {
+    "crypto": false,
+    "fs": false,
+    "path": false,
+    "os": false,
+    "net": false,
+    "stream": false,
+    "tls": false
   }
 }

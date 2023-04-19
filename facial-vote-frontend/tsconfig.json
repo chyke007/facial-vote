@@ -18,6 +18,6 @@
       "src/*": ["./src/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "src/pages/register_face.jsx"],
   "exclude": ["node_modules"]
 }

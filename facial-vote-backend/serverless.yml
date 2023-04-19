@@ -20,12 +20,16 @@ provider:
 custom:
   # replace with your verified SES domain
   ses_domain: ${env:SES_DOMAIN} 
+  jwt_issuer: ${env:JWT_ISSUER}
+  jwt_audience: ${env:JWT_AUDIENCE}
+  jwt_subject: ${env:JWT_SUBJECT}
+  jwt_secret: ${env:JWT_SECRET}
   uploaded_s3_bucket_name: ${self:service}-facialvote
   rekognition_collection_name: ${self:service}-facialvote
   dynamodb_name: ${self:service}-facialvote
   iot_name: ${self:service}-facialvote
   sts_user: ${self:service}-facialvote
-  sts_expiry: 3600
+  sts_expiry: 900
   confidence_face: 90
   region: us-east-1
 
@@ -42,7 +46,6 @@ functions:
     environment:
       SES_FROM_ADDRESS: ${self:custom.ses_domain}
       DYNAMODB_NAME: ${self:custom.dynamodb_name}
-      IOT_ENDPOINT: !GetAtt IotEndpoint.IotEndpointAddress
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -212,6 +215,10 @@ functions:
       STS_ACCESS_KEY: ${self:outputs.StsUserAccessKeyId.Value}
       STS_SECRET_KEY: ${self:outputs.StsUserSecretKey.Value}
       STS_EXPIRY: ${self:custom.sts_expiry}
+      JWT_ISSUER: ${self:custom.jwt_issuer} 
+      JWT_AUDIENCE: ${self:custom.jwt_audience}
+      JWT_SUBJECT: ${self:custom.jwt_subject}
+      JWT_SECRET: ${self:custom.jwt_secret}
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -255,6 +262,10 @@ functions:
     description: Adds users vote
     environment:
       DYNAMODB_NAME: ${self:custom.dynamodb_name}
+      JWT_ISSUER: ${self:custom.jwt_issuer}, 
+      JWT_AUDIENCE: ${self:custom.jwt_audience},
+      JWT_SUBJECT: ${self:custom.jwt_subject},
+      JWT_SECRET: ${self:custom.jwt_secret}
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -291,6 +302,7 @@ functions:
     events:
       - stream:
           type: dynamodb
+          maximumRetryAttempts: 2
           arn:
             Fn::GetAtt: [FacialVoteDB, StreamArn]
 

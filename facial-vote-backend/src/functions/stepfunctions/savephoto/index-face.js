@@ -33,7 +33,7 @@ module.exports.handler = async (event) => {
             data: { key: err, value: null }
         };
     } else {
-        if (response.FaceRecords.length > 0) {
+        if (response.FaceRecords && response.FaceRecords.length > 0) {
             const faceId = response.FaceRecords[0].Face.FaceId
             res = {
                 status: 'SUCCESS',

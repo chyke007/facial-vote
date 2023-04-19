@@ -1,6 +1,6 @@
 const AWS = require('aws-sdk');
 const { STS_TOKEN } = require('../../../utils/constant');
-const { publishToTopic, extractFileName } = require('../../../utils/helper');
+const { publishToTopic, extractFileName, generateJwt } = require('../../../utils/helper');
 const { IOT_ENDPOINT, AWS_REGION, STS_ACCESS_KEY, STS_SECRET_KEY, STS_EXPIRY } = process.env
 
 AWS.config.update({ region: AWS_REGION });
@@ -23,9 +23,9 @@ module.exports.handler = async (event) => {
         .getSessionToken(params)
         .promise()
 
-    res.data.value =  { faceId , credentials }
-
-    console.log("Credentials: ", { faceId , credentials })
+    const userId = await generateJwt({ faceId });
+    res.data.value =  { userId , credentials }
+    console.log("Credentials: ", { userId , credentials })
     const file_name = extractFileName(key)
 
     await publishToTopic(iotClient, file_name, res);

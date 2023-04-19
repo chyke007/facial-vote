@@ -24,19 +24,24 @@ exports.handler = (event, context, callback) => {
         // and show based on candidate grouping
 
         if (record.eventName == 'INSERT') {
-            console.log(record.dynamodb.Keys.PK.S)
-            if(!(record.dynamodb.Keys.PK.S.slice(0, 5) == 'VOTES')){
-                return;
+            try{
+                console.log(record.dynamodb.Keys.PK.S)
+                if(!(record.dynamodb.Keys.PK.S.slice(0, 5) == 'VOTES')){
+                    return;
+                }
+                var { candidate_id, voting_id } = record.dynamodb.NewImage;
+                
+                var params = {
+                    candidate_id: candidate_id.S, voting_id: voting_id.S
+                };
+                res.data.value = params;
+    
+                console.log(params)
+                await publishToTopic(iotClient, VOTE_ADDED, res);
+            }catch(e){
+                callback(null, `Error processing ${e}`);
             }
-            var { candidate_id, voting_id } = record.dynamodb.NewImage;
-            
-            var params = {
-                candidate_id: candidate_id.S, voting_id: voting_id.S
-            };
-            res.data.value = params;
-
-            console.log(params)
-            await publishToTopic(iotClient, VOTE_ADDED, res);
+           
         }
     });
     callback(null, `Successfully processed ${event.Records.length} records.`);
