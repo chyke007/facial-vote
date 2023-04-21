@@ -2,6 +2,7 @@ import { Auth } from 'aws-amplify'
 import Head from 'next/head'
 import { useEffect, useState } from 'react'
 import Navbar from 'src/components/Navbar';
+import VoteCategory from 'src/components/VoteCategory';
 import config from 'src/utils/config';
 import { s3UploadUnAuth } from "src/utils/helpers";
 import Iot from 'src/utils/Iot';
@@ -12,9 +13,7 @@ export default function Vote() {
         VOTE
     }
 
-    const [stage, setStage] = useState(Stages.VALIDATE_PHOTO);
-    const [vote_id, setVoteId] = useState(0);
-    const [candidate_id, setCandidateId] = useState(0);
+    const [stage, setStage] = useState(Stages.VOTE);
     const [file, setFile] = useState(null as any);
     const [isloading, setIsloading] = useState(false)
     const [credentials, setCredentials] = useState(null as any);
@@ -25,8 +24,6 @@ export default function Vote() {
 
     const setupIoT = async () => {
         setMqttClient(await Iot(addTopicListeners));
-        retrieveVoteDetails()
-
     }
     useEffect(() => {
         setupIoT().catch(console.error);
@@ -92,39 +89,15 @@ export default function Vote() {
                     alert(payloadEnvelope.data.key);
                     break
                 case 'SUCCESS':
-                    alert("Face found!")
-                    console.log(payloadEnvelope.data.value)
                     setCredentials(payloadEnvelope.data.value)
                     setStage(Stages.VOTE)
                     break
             }
         })
     }
-    const retrieveVoteDetails = async () => {
-        const postData = async () => {
-            const response = await fetch("/api/voting", {
-                method: "GET"
-            });
-            return response.json();
-        };
-        postData().then((data) => {
-            if (data.message || data.error) {
-                alert("Error fetching voting process");
-                return;
-            }
-            console.log(data)
-            loadVotingData(data);
-        });
+   
 
-    }
-
-    const loadVotingData = (data: { Items: Array<object>, Count: number }) => {
-        if (data.Count == 0) {
-            setVoting([])
-            return;
-        }
-        setVoting(data.Items as any)
-    }
+    
 
     const updateCandidate = (e: any) => {
         const votingId = e.target.value;
@@ -146,7 +119,7 @@ export default function Vote() {
         const postData = async () => {
             const response = await fetch("/api/vote", {
                 method: "POST",
-                body: JSON.stringify({ voting_id, candidate_id, user_id, credentials})
+                body: JSON.stringify({ voting_id, candidate_id, user_id, credentials })
             });
             return response.json();
         };
@@ -156,10 +129,8 @@ export default function Vote() {
                 return;
             }
             alert("You have voted")
-            console.log(data)
-            loadVotingData(data);
+            console.log(data);
         });
-        console.log(voting_id, candidate_id, user_id)
     }
 
     return (
@@ -187,43 +158,18 @@ export default function Vote() {
                             </div>
                         }
 
-
                         {stage == Stages.VOTE &&
 
-
-
-
-                            <div className="my-2 text-black">
-                                {
-                                    voting.length == 0 ?
-                                        (
-                                            <p className="text-black bg-white p-2 h-1/3 mb-4 rounded-md mt-8">
-                                                <b>No voting process exist</b><br /> <br />
-                                            </p>
-                                        ) :
-                                        (
-                                            <section className='flex flex-wrap items-center w-full justify-center'>
-                                                <select defaultValue={0} onChange={(e) => updateCandidate(e)} className="block font-bold w-1/4 bg-green-600 text-white py-3 px-4 m-2 rounded leading-tight focus:outline-none focus:bg-blue-600" name="category">
-                                                    <option disabled value={0}>Select Category</option>
-                                                    {
-                                                        voting.map((category: { id: string, name: string }) =>
-                                                            <option key={category.id} value={category.id} >{category.name}</option>)
-                                                    }
-
-                                                </select>
-
-                                                <select defaultValue={0} className="block font-bold w-1/4 bg-green-600 text-white py-3 px-4 m-2 rounded leading-tight focus:outline-none focus:bg-blue-600" name="candidate">
+                            <VoteCategory voting={voting} setVoting={setVoting} updateVoting={updateCandidate}>
+                                      <select defaultValue={0} className="block font-bold w-1/4 bg-green-600 text-white py-3 px-4 m-2 rounded leading-tight focus:outline-none focus:bg-blue-600" name="candidate">
                                                     <option disabled value={0}>Select Candidate</option>
                                                     {
                                                         votingCandidates.map((candidate: { id: string, name: string }) =>
                                                             <option key={candidate.id} value={candidate.id} onChange={() => candidate.id}>{candidate.name}</option>)
                                                     }
 
-                                                </select>
-                                            </section>
-                                        )
-                                }
-                            </div>
+                                        </select>
+                            </VoteCategory>
                         }
 
                         {stage == Stages.VOTE && voting.length == 0 ?

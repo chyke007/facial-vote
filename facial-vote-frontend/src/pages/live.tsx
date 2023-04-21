@@ -1,12 +1,24 @@
 import Head from 'next/head'
+import { useEffect, useState } from 'react';
 import Navbar from 'src/components/Navbar';
+import VoteCategory from 'src/components/VoteCategory';
+
+const dayjs = require('dayjs')
 
 export default function Live() {
+
+    const [voting, setVoting] = useState([])
+    const [votes, setVotes] = useState([])
+    
+    const updateVoting = (e: any) => {
+        const votingId = e.target.value;
+        console.log("Fecthing results...")
+    }
 
     return (
         <>
             <Head>
-                <title>Home - Facial Recognition voting application</title>
+                <title>Live Result - Facial Recognition voting application</title>
                 <meta name="description" content="Retrieve Account" />
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
                 <link rel="icon" href="/favicon.ico" />
@@ -17,11 +29,10 @@ export default function Live() {
 
                     <div className="flex flex-col justify-center lg:w-1/3 px-4 pt-2 pb-8 mb-4 h-full ">
                         <p className="text-black bg-white p-2 h-1/3 mb-4 rounded-md">
-                            <b>Facial Recognition voting application</b> <br /> <br />
+                            <b>Facial Recognition Voting Application</b> <br /> <br />
                         </p>
 
-
-
+                        <VoteCategory voting={voting} setVoting={setVoting} updateVoting={updateVoting} />
                         <div className="flex">
                             <button className="bg-green-500 w-full hover:bg-white-700 text-white hover:text-green-600 font-bold py-2 px-4 focus:outline-none focus:shadow-outline" type="submit">
                                 Powered by AWS
