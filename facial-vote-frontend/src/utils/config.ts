@@ -11,6 +11,10 @@ export default {
         IDENTITY_POOL_ID: process.env.NEXT_PUBLIC_IDENTITY_POOL_ID,
     },
     IoT: {
-        endpoint: process.env.NEXT_PUBLIC_IOT_ENDPOINT
+        ENDPOINT: process.env.NEXT_PUBLIC_IOT_ENDPOINT
+    },
+    Api: {
+        ENDPOINT: process.env.NEXT_PUBLIC_API_ENDPOINT,
+        APIKEY:  process.env.NEXT_PUBLIC_API_KEY
     }
 }

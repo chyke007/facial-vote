@@ -6,7 +6,7 @@ import config from 'src/utils/config';
 export default async (callme: any) => {
   const AWSConfiguration = {
     poolId: awsExport.Auth.identityPoolId,
-    host: config.IoT.endpoint,
+    host: config.IoT.ENDPOINT,
     region: awsExport.Auth.region,
   }
 

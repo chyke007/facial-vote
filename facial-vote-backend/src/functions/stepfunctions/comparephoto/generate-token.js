@@ -24,8 +24,8 @@ module.exports.handler = async (event) => {
         .promise()
 
     const userId = await generateJwt({ faceId });
-    res.data.value =  { userId , credentials }
-    console.log("Credentials: ", { userId , credentials })
+    res.data.value =  { userId ,  ...credentials.Credentials }
+    console.log("Credentials: ", { userId , ...credentials.Credentials })
     const file_name = extractFileName(key)
 
     await publishToTopic(iotClient, file_name, res);

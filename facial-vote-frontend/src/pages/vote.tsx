@@ -13,21 +13,24 @@ export default function Vote() {
     }
 
     const [stage, setStage] = useState(Stages.VALIDATE_PHOTO);
-    const [candidate_id, setVoteId] = useState(0);
-    const [vote_id, setCandidateId] = useState(0);
+    const [vote_id, setVoteId] = useState(0);
+    const [candidate_id, setCandidateId] = useState(0);
     const [file, setFile] = useState(null as any);
     const [isloading, setIsloading] = useState(false)
     const [credentials, setCredentials] = useState(null as any);
+    const [voting, setVoting] = useState([])
+    const [votingCandidates, setVotingCandidates] = useState([])
     const [mqttClient, setMqttClient] = useState(null as any)
 
 
     const setupIoT = async () => {
-        setMqttClient(await Iot(addTopicListeners))
-        
+        setMqttClient(await Iot(addTopicListeners));
+        retrieveVoteDetails()
+
     }
     useEffect(() => {
         setupIoT().catch(console.error);
-      }, [])
+    }, [])
 
     const handleSubmit = async (event: any) => {
         switch (stage) {
@@ -52,14 +55,6 @@ export default function Vote() {
         }
     }
 
-    const handleCandidateIdChange = (e: any) => {
-        setCandidateId(e.target.value)
-    }
-
-    const handleVoteIdChange = (e: any) => {
-        setVoteId(e.target.value)
-    }
-
     const selectFile = (e: any) => {
         setFile(e.target.files);
     }
@@ -76,8 +71,8 @@ export default function Vote() {
         setIsloading(true)
 
         try {
-            const fileName =  `${Date.now()}-${file[0].name}`;
-            
+            const fileName = `${Date.now()}-${file[0].name}`;
+
             mqttClient.subscribe(fileName);
 
             await s3UploadUnAuth(file[0], fileName);
@@ -86,9 +81,7 @@ export default function Vote() {
             setIsloading(false);
         }
     }
-    //sign out after image successful upload
-    //move back to step 1
-    
+
     const addTopicListeners = (client: any) => {
         client.on('message', function (topic: string, payload: any) {
             const payloadEnvelope = JSON.parse(payload.toString())
@@ -96,27 +89,77 @@ export default function Vote() {
             setIsloading(false);
             switch (payloadEnvelope.status) {
                 case 'ERROR':
-                  alert(payloadEnvelope.data.key);
-                  break
+                    alert(payloadEnvelope.data.key);
+                    break
                 case 'SUCCESS':
-                  alert("Face added successfully!")
-                  console.log(payloadEnvelope.data.value)
-                  setCredentials(payloadEnvelope.data.value)
-                  setStage(Stages.VOTE)
-                  break
+                    alert("Face found!")
+                    console.log(payloadEnvelope.data.value)
+                    setCredentials(payloadEnvelope.data.value)
+                    setStage(Stages.VOTE)
+                    break
             }
         })
     }
-    const retrieveVoteDetails = async (event: any) => {
-        event.preventDefault();
+    const retrieveVoteDetails = async () => {
+        const postData = async () => {
+            const response = await fetch("/api/voting", {
+                method: "GET"
+            });
+            return response.json();
+        };
+        postData().then((data) => {
+            if (data.message || data.error) {
+                alert("Error fetching voting process");
+                return;
+            }
+            console.log(data)
+            loadVotingData(data);
+        });
 
-        const vote = event.target.vote.value;    
     }
 
+    const loadVotingData = (data: { Items: Array<object>, Count: number }) => {
+        if (data.Count == 0) {
+            setVoting([])
+            return;
+        }
+        setVoting(data.Items as any)
+    }
+
+    const updateCandidate = (e: any) => {
+        const votingId = e.target.value;
+        let currentVoting: any = voting.find((e: any) => e.id == votingId)
+
+        setVotingCandidates(JSON.parse(currentVoting.candidates))
+    }
     const submitVote = async (event: any) => {
         event.preventDefault();
 
-        const vote = event.target.vote.value;    
+        const voting_id = event.target.category.value;
+        const candidate_id = event.target.candidate.value;
+        const user_id = credentials?.userId || "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIn0..mTBdEfXk_kPW_gJ_.BYY-9nletkmaf_SFcpl8uZs9UaKiD-hxYbFXzsGX_cEIbo9oAO2vuOO9Rne7zzC6co41lNZ19WF-vWbuAkbVkS8egyxofIJup_QL0JgWnsx1oggvga1ag3FEg-mVwJyLFPG_zcXnMOVe1DejZbnS1gjijAmZeh6juQYabSzzgLw-f_5Z-33OIrU46DgmxEw9QqS4-3Mg1_SV0mo.tCN1PyatDf8n0ibMT7DDsQ";
+
+        if (!voting_id || !candidate_id || !user_id) {
+            return;
+        }
+
+        const postData = async () => {
+            const response = await fetch("/api/vote", {
+                method: "POST",
+                body: JSON.stringify({ voting_id, candidate_id, user_id, credentials})
+            });
+            return response.json();
+        };
+        postData().then((data) => {
+            if (data.message || data.error) {
+                alert(data.message || data.error)
+                return;
+            }
+            alert("You have voted")
+            console.log(data)
+            loadVotingData(data);
+        });
+        console.log(voting_id, candidate_id, user_id)
     }
 
     return (
@@ -139,25 +182,59 @@ export default function Vote() {
                         </p>
                         {stage == Stages.VALIDATE_PHOTO &&
 
-<div className="my-2">
-    <input className="border border-2 border-black text-black w-full py-2 px-3" required onChange={selectFile} id="file" type="file" name="file" accept="image/png,  image/jpg, image/jpeg" />
-</div>
-}
-
-                        
-                        {stage == Stages.VOTE &&
-
                             <div className="my-2">
-                                <input className=" appearance-none border w-full py-2 px-3 text-black leading-tight focus:outline-none focus:shadow-outline" required value={candidate_id} onChange={handleCandidateIdChange} id="otp" type="text" name="otp" placeholder="Enter OTP (check email)" />
+                                <input className="border border-2 border-black text-black w-full py-2 px-3" required onChange={selectFile} id="file" type="file" name="file" accept="image/png,  image/jpg, image/jpeg" />
                             </div>
                         }
 
-                        
-                        <div className="flex">
-                            <button className="bg-green-500 w-full hover:bg-white-700 text-white hover:text-green-600 font-bold py-2 px-4 focus:outline-none focus:shadow-outline" type="submit" disabled={isloading}>
-                                {getMessage()}
-                            </button>
-                        </div>
+
+                        {stage == Stages.VOTE &&
+
+
+
+
+                            <div className="my-2 text-black">
+                                {
+                                    voting.length == 0 ?
+                                        (
+                                            <p className="text-black bg-white p-2 h-1/3 mb-4 rounded-md mt-8">
+                                                <b>No voting process exist</b><br /> <br />
+                                            </p>
+                                        ) :
+                                        (
+                                            <section className='flex flex-wrap items-center w-full justify-center'>
+                                                <select defaultValue={0} onChange={(e) => updateCandidate(e)} className="block font-bold w-1/4 bg-green-600 text-white py-3 px-4 m-2 rounded leading-tight focus:outline-none focus:bg-blue-600" name="category">
+                                                    <option disabled value={0}>Select Category</option>
+                                                    {
+                                                        voting.map((category: { id: string, name: string }) =>
+                                                            <option key={category.id} value={category.id} >{category.name}</option>)
+                                                    }
+
+                                                </select>
+
+                                                <select defaultValue={0} className="block font-bold w-1/4 bg-green-600 text-white py-3 px-4 m-2 rounded leading-tight focus:outline-none focus:bg-blue-600" name="candidate">
+                                                    <option disabled value={0}>Select Candidate</option>
+                                                    {
+                                                        votingCandidates.map((candidate: { id: string, name: string }) =>
+                                                            <option key={candidate.id} value={candidate.id} onChange={() => candidate.id}>{candidate.name}</option>)
+                                                    }
+
+                                                </select>
+                                            </section>
+                                        )
+                                }
+                            </div>
+                        }
+
+                        {stage == Stages.VOTE && voting.length == 0 ?
+                            '' :
+                            (<div className="flex">
+                                <button className="bg-green-500 w-full hover:bg-white-700 text-white hover:text-green-600 font-bold py-2 px-4 focus:outline-none focus:shadow-outline" type="submit" disabled={isloading}>
+                                    {getMessage()}
+                                </button>
+                            </div>
+                            )
+                        }
                     </form>
 
                 </section>
