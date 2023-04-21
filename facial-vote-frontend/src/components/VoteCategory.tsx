@@ -65,12 +65,12 @@ export default function VoteCategory({ voting, setVoting, updateVoting, children
                     voting.length == 0 ?
                         (
                             <p className="text-black bg-white p-2 h-1/3 mb-4 rounded-md mt-8">
-                                <b>{ loading ? 'loading': 'No voting process exist'}</b><br /> <br />
+                                <b>{ loading ? 'loading...': 'No voting process exist'}</b><br /> <br />
                             </p>
                         ) :
                         (
                             <section className='flex flex-wrap items-center w-full justify-center'>
-                                <select defaultValue={0} onChange={(e) => updateVoting(e)} className="block font-bold w-1/4 bg-green-600 text-white py-3 px-4 m-2 rounded leading-tight focus:outline-none focus:bg-blue-600" name="category">
+                                <select defaultValue={0} onChange={(e) => updateVoting(e)} className="block font-bold w-1/2 bg-green-600 text-white py-3 px-4 m-2 rounded leading-tight focus:outline-none focus:bg-blue-600" name="category">
                                     <option disabled value={0}>Select Category</option>
                                     {
                                         voting && voting.map((category: { id: string, name: string, disabled: boolean }) =>

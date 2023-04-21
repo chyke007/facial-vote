@@ -258,6 +258,27 @@ functions:
           cors: true
           private: true
 
+  getVotes:
+    handler: src/functions/voting/get-votes.handler
+    memorySize: 128
+    description: Gets all votes for a voting process
+    environment:
+      DYNAMODB_NAME: ${self:custom.dynamodb_name}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+          - dynamodb:Scan
+          - dynamodb:GetItem
+        Resource:
+          - !GetAtt FacialVoteDB.Arn
+    events:
+      - http: 
+          path: vote/{id}
+          method: get
+          cors: true
+          private: true
+
   vote:
     handler: src/functions/voting/add-vote.handler
     memorySize: 128

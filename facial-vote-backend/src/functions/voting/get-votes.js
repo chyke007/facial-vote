@@ -6,12 +6,13 @@ const dynamodb = new AWS.DynamoDB.DocumentClient();
 const { DYNAMODB_NAME } = process.env
 
 module.exports.handler = async (event, context, callback) => {
+    const {id} = event.pathParameters;
 
     const dbParams = {
         TableName: DYNAMODB_NAME,
         KeyConditionExpression: 'PK=:pk',
         ExpressionAttributeValues: {
-            ":pk": "VOTING#true"
+            ":pk": `VOTES#${id}`
         }
     }
 

@@ -9,10 +9,27 @@ export default function Live() {
 
     const [voting, setVoting] = useState([])
     const [votes, setVotes] = useState([])
+    const [loading, isloading] = useState(true);
     
     const updateVoting = (e: any) => {
         const votingId = e.target.value;
-        console.log("Fecthing results...")
+        
+
+        const postData = async () => {
+            console.log("Fetching results...")
+            const response = await fetch(`/api/vote/${votingId}`, {
+                method: "GET"
+            });
+            return response.json();
+        };
+        postData().then((data) => {
+            if (data.message || data.error) {
+                alert("Error fetching votes");
+                return;
+            }
+            isloading(false)
+            setVotes(data);
+        });
     }
 
     return (
@@ -27,9 +44,10 @@ export default function Live() {
                 <Navbar />
                 <section className="flex lg:flex-row flex-col flex-col-reverse py-4 justify-center lg:mt-0 lg:h-screen h-auto overflow-hidden  text-white px-6">
 
-                    <div className="flex flex-col justify-center lg:w-1/3 px-4 pt-2 pb-8 mb-4 h-full ">
+                    <div className="flex flex-col justify-center lg:w-1/3 px-4 pt-2 pb-8 mb-4 h-1/2 ">
                         <p className="text-black bg-white p-2 h-1/3 mb-4 rounded-md">
-                            <b>Facial Recognition Voting Application</b> <br /> <br />
+                            <b>Step 1: Select Category to view result</b> <br /> <br />
+                            <b>Step 2: Real-time result would also be shown </b> <br /> <br />
                         </p>
 
                         <VoteCategory voting={voting} setVoting={setVoting} updateVoting={updateVoting} />

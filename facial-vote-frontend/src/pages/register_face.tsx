@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Navbar from 'src/components/Navbar';
 import config from 'src/utils/config';
 import { s3Upload } from "src/utils/helpers";
-import Iot from 'src/utils/Iot';
+import Iot from 'src/utils/iot'
 
 export default function Register_Face() {
     enum Stages {

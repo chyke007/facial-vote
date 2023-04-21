@@ -5,7 +5,7 @@ import Navbar from 'src/components/Navbar';
 import VoteCategory from 'src/components/VoteCategory';
 import config from 'src/utils/config';
 import { s3UploadUnAuth } from "src/utils/helpers";
-import Iot from 'src/utils/Iot';
+import Iot from 'src/utils/iot'
 
 export default function Vote() {
     enum Stages {
@@ -161,7 +161,7 @@ export default function Vote() {
                         {stage == Stages.VOTE &&
 
                             <VoteCategory voting={voting} setVoting={setVoting} updateVoting={updateCandidate}>
-                                      <select defaultValue={0} className="block font-bold w-1/4 bg-green-600 text-white py-3 px-4 m-2 rounded leading-tight focus:outline-none focus:bg-blue-600" name="candidate">
+                                      <select defaultValue={0} className="block font-bold w-1/2 bg-green-600 text-white py-3 px-4 m-2 rounded leading-tight focus:outline-none focus:bg-blue-600" name="candidate">
                                                     <option disabled value={0}>Select Candidate</option>
                                                     {
                                                         votingCandidates.map((candidate: { id: string, name: string }) =>
