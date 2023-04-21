@@ -1,4 +1,3 @@
-import { Auth } from 'aws-amplify'
 import Head from 'next/head'
 import { useEffect, useState } from 'react'
 import Navbar from 'src/components/Navbar';
@@ -13,7 +12,7 @@ export default function Vote() {
         VOTE
     }
 
-    const [stage, setStage] = useState(Stages.VOTE);
+    const [stage, setStage] = useState(Stages.VALIDATE_PHOTO);
     const [file, setFile] = useState(null as any);
     const [isloading, setIsloading] = useState(false)
     const [credentials, setCredentials] = useState(null as any);
@@ -25,6 +24,7 @@ export default function Vote() {
     const setupIoT = async () => {
         setMqttClient(await Iot(addTopicListeners));
     }
+
     useEffect(() => {
         setupIoT().catch(console.error);
     }, [])
@@ -81,7 +81,7 @@ export default function Vote() {
 
     const addTopicListeners = (client: any) => {
         client.on('message', function (topic: string, payload: any) {
-            const payloadEnvelope = JSON.parse(payload.toString())
+            const payloadEnvelope = JSON.parse(payload.toString());
 
             setIsloading(false);
             switch (payloadEnvelope.status) {
@@ -110,7 +110,7 @@ export default function Vote() {
 
         const voting_id = event.target.category.value;
         const candidate_id = event.target.candidate.value;
-        const user_id = credentials?.userId || "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIn0..mTBdEfXk_kPW_gJ_.BYY-9nletkmaf_SFcpl8uZs9UaKiD-hxYbFXzsGX_cEIbo9oAO2vuOO9Rne7zzC6co41lNZ19WF-vWbuAkbVkS8egyxofIJup_QL0JgWnsx1oggvga1ag3FEg-mVwJyLFPG_zcXnMOVe1DejZbnS1gjijAmZeh6juQYabSzzgLw-f_5Z-33OIrU46DgmxEw9QqS4-3Mg1_SV0mo.tCN1PyatDf8n0ibMT7DDsQ";
+        const user_id = credentials?.userId;
 
         if (!voting_id || !candidate_id || !user_id) {
             return;

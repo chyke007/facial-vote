@@ -12,7 +12,6 @@ body {
   color: rgb(var(--foreground-rgb));
   background-color: var(--foreground-bg);
   background-image: url("/pattern.jpg");
-  height: 110vh;
   background-repeat: no-repeat;
   background-size: cover; 
 }

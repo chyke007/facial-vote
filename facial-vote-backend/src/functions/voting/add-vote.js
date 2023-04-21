@@ -163,7 +163,8 @@ module.exports.handler = async (event) => {
           SK: `${decryptedUser.payload.faceId}#${candidate_id}`,
           voting_id,
           user_id: decryptedUser.payload.faceId,
-          candidate_id
+          candidate_id,
+          candidate_name: candidate.name
         }
       };
     await dynamodb.put(dbParams).promise();

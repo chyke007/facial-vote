@@ -11,7 +11,8 @@ export default {
         IDENTITY_POOL_ID: process.env.NEXT_PUBLIC_IDENTITY_POOL_ID,
     },
     IoT: {
-        ENDPOINT: process.env.NEXT_PUBLIC_IOT_ENDPOINT
+        ENDPOINT: process.env.NEXT_PUBLIC_IOT_ENDPOINT,
+        VOTE_ADDED: "VOTE_ADDED"
     },
     Api: {
         ENDPOINT: process.env.NEXT_PUBLIC_API_ENDPOINT,
