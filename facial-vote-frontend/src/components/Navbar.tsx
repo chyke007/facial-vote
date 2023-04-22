@@ -37,7 +37,7 @@ export default function Navbar() {
                         <Link href="/live" className={router.pathname == "/live" ? active: passive }>Live Result</Link>
                     </div>
                     <div className="hidden lg:flex lg:flex-1 lg:justify-end">
-                        <Link href="https://github.com/chyke007/facial-vote">
+                        <Link href="https://github.com/chyke007/facial-vote" rel="noopener noreferrer" target="_blank">
                             <button className="text-sm font-semibold px-12 py-2 rounded-sm  leading-6 bg-black text-white hover:text-green-500 hover:bg-white">
                                 GITHUB
                             </button>

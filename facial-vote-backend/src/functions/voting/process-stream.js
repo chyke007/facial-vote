@@ -18,14 +18,15 @@ exports.handler = (event, context, callback) => {
 
         if (record.eventName == 'INSERT') {
             try{
-                console.log(record.dynamodb.Keys.PK.S)
                 if(!(record.dynamodb.Keys.PK.S.slice(0, 5) == 'VOTES')){
                     return;
                 }
-                var { candidate_id, voting_id } = record.dynamodb.NewImage;
+                var { candidate_id, candidate_name, voting_id } = record.dynamodb.NewImage;
                 
                 var params = {
-                    candidate_id: candidate_id.S, voting_id: voting_id.S
+                    candidate_id: candidate_id.S, 
+                    candidate_name: candidate_name.S,
+                    voting_id: voting_id.S
                 };
                 res.data.value = params;
     

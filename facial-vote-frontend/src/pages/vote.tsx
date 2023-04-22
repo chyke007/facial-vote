@@ -89,8 +89,7 @@ export default function Vote() {
                     alert(payloadEnvelope.data.key);
                     break
                 case 'SUCCESS':
-                    setCredentials(payloadEnvelope.data.value)
-                    console.log(payloadEnvelope.data.value)
+                    setCredentials(payloadEnvelope.data.value);
                     setStage(Stages.VOTE)
                     break
             }

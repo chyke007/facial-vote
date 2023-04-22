@@ -10,20 +10,27 @@ import config from 'src/utils/config';
 
 export default function Live() {
 
-    const [voting, setVoting] = useState([])
-    const [votes, setVotes] = useState([])
+    const [voting, setVoting] = useState([] as any)
+    const [votes, setVotes] = useState([] as any)
     const [votingId, setVotingId] = useState(0)
+    const [realtime, setRealtime] = useState(null)
+    const [mqclient, setMqClient] = useState(null)
     const [chartData, setChartData] = useState({} as any)
     const [loading, isloading] = useState(false);
-    
+
     const setupIoT = async () => {
         let mqclient = await Iot(addTopicListeners);
+        setMqClient(mqclient)
         mqclient.subscribe(config.IoT.VOTE_ADDED);
     }
-    
+
     useEffect(() => {
-        setupIoT().catch(console.error);
-    }, [])
+        if (!mqclient) {
+            setupIoT().catch(console.error);
+        } else {
+            updateVote(realtime)
+        }
+    }, [realtime])
 
 
     const chartRaw = {
@@ -34,7 +41,7 @@ export default function Live() {
                 name: "Pie",
                 chartType: "PieChart",
                 data: [
-                    ["Candidate", "Votes"]    
+                    ["Candidate", "Votes"]
                 ],
                 options: {
                     "title": "Stats"
@@ -57,7 +64,7 @@ export default function Live() {
         ]
     }
 
-    
+
     const columns = [
         {
             id: 1,
@@ -78,13 +85,26 @@ export default function Live() {
             chartRaw.charts[0].data.push([val.candidate_name, val.candidate_vote])
             chartRaw.charts[1].data.push([val.candidate_name, val.candidate_vote])
         })
+
+        setChartData(chartRaw)
+    }
+
+    const updateChartsReal = (data: Array<any>) => {
+        chartRaw.charts[0].data = [["Candidate", "Votes"]]
+        chartRaw.charts[1].data = [["Candidate", "Votes"]]
+
+        data.forEach((val: any) => {
+            chartRaw.charts[0].data.push([val.candidate_name, val.candidate_vote])
+            chartRaw.charts[1].data.push([val.candidate_name, val.candidate_vote])
+        })
+
         setChartData(chartRaw)
     }
 
     const updateVoting = (e: any) => {
         const votingIdLo = e.target.value;
 
-        setVotingId(votingIdLo)
+        setVotingId(votingIdLo);
         isloading(true)
 
         const postData = async () => {
@@ -105,7 +125,7 @@ export default function Live() {
             } else {
                 setVotes(data.Items);
                 updateCharts(data.Items);
-                
+
             }
         });
 
@@ -113,37 +133,53 @@ export default function Live() {
     }
 
     const updateVote = (data: any) => {
-        console.log("Match: ",votingId)
-        if(Number(votingId) != Number(data.candidate_id)){
-            console.log(votingId, data.candidate_id)
-            console.log("Not a match")
+        if (Number(votingId) != Number(data.voting_id)) {
             return
         }
-        console.log("Match: ",votingId)
-        
-        console.log(123,voting)
 
+        delete data.voting_id;
+
+        if (votes.length == 0) {
+            let newVote: any = [{ ...data, candidate_vote: 1 }]
+
+            setVotes(newVote);
+            updateCharts(newVote)
+        } else {
+
+            const id = votes.findIndex((vote: any) => Number(vote.candidate_id) == Number(data.candidate_id));
+            let newVote: any = [...votes]
+
+            if (id != -1) {
+
+                newVote[id].candidate_vote += 1
+            } else {
+                newVote.push({ ...data, candidate_vote: 1 })
+            }
+
+            setVotes(newVote);
+            updateChartsReal(newVote)
+        }
     }
 
     const customSort = (rows: any, selector: any, direction: any) => {
         return rows.sort((rowA: any, rowB: any) => {
-         const aField = selector(rowA)
-         const bField = selector(rowB)
-       
-         let comparison = 0;
-       
-         if (aField > bField) {
-          comparison = 1;
-         } else if (aField < bField) {
-          comparison = -1;
-         }
-       
-         return direction === 'asc' ? comparison * -1 : comparison;
+            const aField = selector(rowA)
+            const bField = selector(rowB)
+
+            let comparison = 0;
+
+            if (aField > bField) {
+                comparison = 1;
+            } else if (aField < bField) {
+                comparison = -1;
+            }
+
+            return direction === 'asc' ? comparison * -1 : comparison;
         });
-       };
-       
-       const addTopicListeners = (client: any) => {
-        client.on('message',  (topic: string, payload: any) => {
+    };
+
+    const addTopicListeners = (client: any) => {
+        client.on('message', (topic: string, payload: any) => {
             const payloadEnvelope = JSON.parse(payload.toString())
 
             switch (payloadEnvelope.status) {
@@ -151,8 +187,7 @@ export default function Live() {
                     alert(payloadEnvelope.data.key);
                     break
                 case 'SUCCESS':
-                    console.log(payloadEnvelope.data.value)
-                    updateVote(payloadEnvelope.data.value)
+                    setRealtime(payloadEnvelope.data.value)
                     break
             }
         })
@@ -187,7 +222,7 @@ export default function Live() {
                             columns={columns}
                             data={votes}
                             defaultSortFieldId={2}
-                            sortFunction={customSort} 
+                            sortFunction={customSort}
                         />
 
                         {votes && votes.length > 0 && chartData.charts && chartData.charts.map((data: any, i: number) => (
@@ -195,7 +230,7 @@ export default function Live() {
                         ))}
                         <div className="flex mt-12">
                             <button className="bg-green-500 w-full hover:bg-white-700 text-white hover:text-green-600 font-bold py-2 px-4 focus:outline-none focus:shadow-outline" type="submit">
-                                Powered by AWS {votingId}
+                                Powered by AWS
                             </button>
                         </div>
                     </div>
