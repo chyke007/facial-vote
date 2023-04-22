@@ -90,6 +90,7 @@ export default function Vote() {
                     break
                 case 'SUCCESS':
                     setCredentials(payloadEnvelope.data.value)
+                    console.log(payloadEnvelope.data.value)
                     setStage(Stages.VOTE)
                     break
             }
@@ -111,11 +112,12 @@ export default function Vote() {
         const voting_id = event.target.category.value;
         const candidate_id = event.target.candidate.value;
         const user_id = credentials?.userId;
-
-        if (!voting_id || !candidate_id || !user_id) {
+        
+        if (voting_id == 0 || candidate_id == 0 || !user_id) {
             return;
         }
 
+        setIsloading(true);
         const postData = async () => {
             const response = await fetch("/api/vote", {
                 method: "POST",
@@ -124,6 +126,7 @@ export default function Vote() {
             return response.json();
         };
         postData().then((data) => {
+            setIsloading(false);
             if (data.message || data.error) {
                 alert(data.message || data.error)
                 return;

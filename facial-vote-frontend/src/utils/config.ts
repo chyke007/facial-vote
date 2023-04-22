@@ -16,6 +16,7 @@ export default {
     },
     Api: {
         ENDPOINT: process.env.NEXT_PUBLIC_API_ENDPOINT,
+        ENDPOINT_GATEWAY: process.env.NEXT_PUBLIC_API_ENDPOINT_GATEWAY,
         APIKEY:  process.env.NEXT_PUBLIC_API_KEY
     }
 }

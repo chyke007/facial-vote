@@ -7,47 +7,45 @@ type ResponseData = {
   [key: string]: any
 }
 
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse<ResponseData>) {
   const method = req.method;
   const body = JSON.parse(req.body);
+
+  const host = config.Api.ENDPOINT_GATEWAY;
+  const path = '/dev/vote';
+  const service = 'execute-api';
   const headers = {
-    'x-api-key': `${config.Api.APIKEY}`,
-    'Content-Type': 'application/json'
+    'x-api-key': `${config.Api.APIKEY}`
   }
 
-  let requestOptions = {
-    host: `${config.Api.ENDPOINT}`,
-    path: '/vote',
-    service: 'execute-api',
-    headers
+  var opts = {
+    host,
+    path,
+    service,
+    method,
+    headers,
+    body: JSON.stringify(body)
   }
-  console.log(body.credentials)
 
-  aws4.sign(requestOptions, {
-    secretAccessKey: body.credentials.SecretAccessKey,
+  var signedRequest = aws4.sign(opts, {
     accessKeyId: body.credentials.AccessKeyId,
-    sessionToken: body.credentials.SessionToken,
+    secretAccessKey: body.credentials.SecretAccessKey,
+    sessionToken: body.credentials.SessionToken
   })
-
-  delete body.credentials;
-
-  const appendedhead: any = requestOptions;
-
-  console.log( appendedhead.headers)
 
   switch (method) {
     case 'POST':
       try {
         const response = await fetch(`${config.Api.ENDPOINT}/vote`, {
-          ...appendedhead
+          headers: signedRequest.headers,
+          method,
+          body: JSON.stringify(body)
         });
         const data = await response.json();
-        console.log(data)
         return res.status(200).json(data)
-
-      } catch (err) {
-        console.log(err)
-        return res.status(500).json({ error: 'failed to load data' })
+      } catch (error) {
+        console.error(error);
       }
   }
 }

@@ -14,12 +14,11 @@ const validateVoting = async (votingId) => {
             KeyConditionExpression: 'PK=:pk and begins_with(SK, :sk)',
             ExpressionAttributeValues: {
                 ":pk": `VOTING#true`,
-                ":sk": `${votingId}`
+                ":sk": `${votingId}#`
             }
         }
 
         const results = await dynamodb.query(dbParams).promise();
-        
         if (!(results && results.Items.length == 1)) {
             console.log("Voting category doesnt exist");
             return false
@@ -88,7 +87,7 @@ const validateUserCanVote = async (votingId, userId) => {
         const results = await dynamodb.query(dbParams).promise();
         
         if (results && results.Items.length == 1) {
-            console.log(1, `${userId} already voted in ${votingId}`);
+            console.log(`${userId} already voted in ${votingId}`);
             return false
         }
         return true;
@@ -102,9 +101,7 @@ const setErrorResponse = (message, statusCode = 400) => {
     const res = {
         statusCode,
         body: JSON.stringify({
-            error: {
-                message
-            }
+            error:  message
         })
     }
     return res
@@ -134,6 +131,7 @@ module.exports.handler = async (event) => {
         return setErrorResponse('Token expired, kindly reupload your face to vote')
     }
     const voting = await validateVoting(voting_id);
+    
     if (!voting) {
         return setErrorResponse('Vote category not found')
     }

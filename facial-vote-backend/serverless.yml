@@ -814,7 +814,7 @@ resources:
               Resource: "*"
             - Effect: "Allow"
               Action:
-                - execute-api:Invoke
+                - execute-api:*
               Resource: "*"
 
     # Lambda permissions

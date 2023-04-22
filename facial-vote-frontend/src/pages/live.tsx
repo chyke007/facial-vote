@@ -8,18 +8,17 @@ import Chart from 'src/components/Chart';
 import Iot from 'src/utils/iot';
 import config from 'src/utils/config';
 
-const dayjs = require('dayjs')
-
 export default function Live() {
 
     const [voting, setVoting] = useState([])
     const [votes, setVotes] = useState([])
+    const [votingId, setVotingId] = useState(0)
     const [chartData, setChartData] = useState({} as any)
     const [loading, isloading] = useState(false);
-    const [mqttClient, setMqttClient] = useState(null as any)
-
+    
     const setupIoT = async () => {
-        setMqttClient(await Iot(addTopicListeners));
+        let mqclient = await Iot(addTopicListeners);
+        mqclient.subscribe(config.IoT.VOTE_ADDED);
     }
     
     useEffect(() => {
@@ -83,11 +82,13 @@ export default function Live() {
     }
 
     const updateVoting = (e: any) => {
-        const votingId = e.target.value;
+        const votingIdLo = e.target.value;
+
+        setVotingId(votingIdLo)
         isloading(true)
 
         const postData = async () => {
-            const response = await fetch(`/api/vote/${votingId}`, {
+            const response = await fetch(`/api/vote/${votingIdLo}`, {
                 method: "GET"
             });
             return response.json();
@@ -104,10 +105,23 @@ export default function Live() {
             } else {
                 setVotes(data.Items);
                 updateCharts(data.Items);
-                mqttClient.subscribe(config.IoT.VOTE_ADDED);
+                
             }
         });
 
+
+    }
+
+    const updateVote = (data: any) => {
+        console.log("Match: ",votingId)
+        if(Number(votingId) != Number(data.candidate_id)){
+            console.log(votingId, data.candidate_id)
+            console.log("Not a match")
+            return
+        }
+        console.log("Match: ",votingId)
+        
+        console.log(123,voting)
 
     }
 
@@ -129,7 +143,7 @@ export default function Live() {
        };
        
        const addTopicListeners = (client: any) => {
-        client.on('message', function (topic: string, payload: any) {
+        client.on('message',  (topic: string, payload: any) => {
             const payloadEnvelope = JSON.parse(payload.toString())
 
             switch (payloadEnvelope.status) {
@@ -138,6 +152,7 @@ export default function Live() {
                     break
                 case 'SUCCESS':
                     console.log(payloadEnvelope.data.value)
+                    updateVote(payloadEnvelope.data.value)
                     break
             }
         })
@@ -180,7 +195,7 @@ export default function Live() {
                         ))}
                         <div className="flex mt-12">
                             <button className="bg-green-500 w-full hover:bg-white-700 text-white hover:text-green-600 font-bold py-2 px-4 focus:outline-none focus:shadow-outline" type="submit">
-                                Powered by AWS
+                                Powered by AWS {votingId}
                             </button>
                         </div>
                     </div>
