@@ -1,5 +1,5 @@
 const _ = require('lodash')
-const { MAX_ATTEMPTS } = require('../helpers/constant')
+const { MAX_ATTEMPTS } = require('../../utils/constant')
 
 module.exports.handler = async (event) => {
   const attempts = _.size(event.request.session)

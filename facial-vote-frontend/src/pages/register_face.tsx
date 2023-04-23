@@ -1,19 +1,18 @@
-import { Amplify, Auth } from 'aws-amplify'
-import Head from 'next/head'
-import { useState } from 'react'
-import styles from 'src/styles/Register.module.css'
-import { awsExport } from 'src/utils/aws-export';
+import { Auth } from 'aws-amplify'
+import Head from 'next/head';
+import { useEffect, useState } from 'react';
+import Navbar from 'src/components/Navbar';
 import config from 'src/utils/config';
 import { s3Upload } from "src/utils/helpers";
+import Iot from 'src/utils/iot'
 
 export default function Register_Face() {
-    Amplify.configure(awsExport);
     enum Stages {
         RETRIEVE_ACCOUNT,
         VALIDATE_OTP,
         ADD_PHOTO
     }
-
+    
     const [stage, setStage] = useState(Stages.RETRIEVE_ACCOUNT);
     const [email, setEmail] = useState("");
     const [otp, setOtp] = useState("");
@@ -21,8 +20,16 @@ export default function Register_Face() {
     const [isSignedIn, setIsSignedIn] = useState(false);
     const [isloading, setIsloading] = useState(false)
     const [cognitoUser, setCognitoUser] = useState(null as any);
+    const [mqttClient, setMqttClient] = useState(null as any)
 
     const [attemptsLeft, setAttemptsLeft] = useState(3);
+
+    const setupIoT = async () => {
+        setMqttClient(await Iot(addTopicListeners))
+    }
+    useEffect(() => {
+        setupIoT().catch(console.error);
+      }, [])
 
     const handleSubmit = async (event: any) => {
         switch (stage) {
@@ -73,10 +80,8 @@ export default function Register_Face() {
             setCognitoUser(user);
             setIsloading(false);
             setStage(Stages.VALIDATE_OTP);
-            setAttemptsLeft(parseInt(cognitoUser.challengeParam.attemptsLeft));
-
         } catch (error: any) {
-            console.log(1, error)
+            console.log(error.message)
             alert(error.message);
             setIsloading(false);
         }
@@ -84,33 +89,31 @@ export default function Register_Face() {
 
     const uploadImage = async (event: any) => {
         event.preventDefault();
-	  
-		if (file && file.size > config.MAX_ATTACHMENT_SIZE) {
-		  alert(`Please pick a file smaller than ${config.MAX_ATTACHMENT_SIZE/1000000} MB.`);
-		  return;
-		}
-	  
-		setIsloading(true)
-	  
-		try {
-		  await s3Upload(file[0], await Auth.currentUserInfo());  
-          alert("Success");
-          setIsloading(false);
-          signOut();
-		} catch (e) {
-		  alert(e);
-		  setIsloading(false);
-		}
+
+        if (file && file.size > config.MAX_ATTACHMENT_SIZE) {
+            alert(`Please pick a file smaller than ${config.MAX_ATTACHMENT_SIZE / 1000000} MB.`);
+            return;
+        }
+        setIsloading(true);
+        try {
+            await s3Upload(file[0], await Auth.currentUserInfo());
+        } catch (e) {
+            alert(e);
+            setIsloading(false);
+        }
     }
-    //sign out after image successful upload
-    //move back to step 1
+    
     async function signOut() {
-        await Auth.signOut()
+        try{
+            await Auth.signOut()
+        }catch(err){
+            console.log(err)
+        }
         setCognitoUser(null);
         setOtp("");
+        setEmail("")
         setIsSignedIn(false);
         setStage(Stages.RETRIEVE_ACCOUNT);
-        console.log(await Auth.currentUserInfo())
     }
 
     const validateOtp = async (event: any) => {
@@ -124,19 +127,41 @@ export default function Register_Face() {
             if (challengeResult.challengeName) {
                 setIsloading(false);
                 setOtp("");
-                setAttemptsLeft(parseInt(challengeResult.challengeParam.attemptsLeft))
+                setAttemptsLeft(parseInt(challengeResult.challengeParam?.attemptsLeft))
                 alert(`The code you entered is incorrect. ${attemptsLeft} attempts left.`)
             } else {
                 setIsSignedIn(true);
                 setIsloading(false);
                 setStage(Stages.ADD_PHOTO);
+                mqttClient.subscribe(cognitoUser.username);
             }
         } catch (error) {
+            console.log(error)
             setOtp("");
             setIsloading(false);
+            setCognitoUser(null);
+            setEmail("")
+            setIsSignedIn(false);
             setStage(Stages.RETRIEVE_ACCOUNT);
             alert('Too many failed attempts. Please try again.');
         }
+    }
+
+    const addTopicListeners = (client: any) => {
+        client.on('message', function (topic: string, payload: any) {
+            const payloadEnvelope = JSON.parse(payload.toString())
+
+            setIsloading(false);
+            switch (payloadEnvelope.status) {
+                case 'ERROR':
+                  alert(payloadEnvelope.data.key);
+                  break
+                case 'SUCCESS':
+                  alert("Face added successfully!")
+                  signOut();
+                  break
+            }
+        })
     }
 
     return (
@@ -147,8 +172,9 @@ export default function Register_Face() {
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
                 <link rel="icon" href="/favicon.ico" />
             </Head>
-            <main className={styles.registerBody}>
-                <section className="flex flex-row py-4 justify-center h-full overflow-hidden  text-white px-6">
+            <main className="">
+                <Navbar />
+                <section className="flex lg:flex-row flex-col flex-col-reverse py-4 justify-center lg:mt-0 lg:h-screen h-auto overflow-hidden  text-white px-6">
 
                     <form onSubmit={handleSubmit} className="flex flex-col justify-center lg:w-1/3 px-4 pt-2 pb-8 mb-4 h-full ">
                         <p className="text-black bg-white p-2 rounded-md">
@@ -171,7 +197,7 @@ export default function Register_Face() {
                         {stage == Stages.ADD_PHOTO && isSignedIn &&
 
                             <div className="my-2">
-                               <input className="border border-2 border-black text-black w-full py-2 px-3" required onChange={selectFile} id="file" type="file" name="file" accept="image/png,  image/jpg, image/jpeg" />
+                                <input className="border border-2 border-black text-black w-full py-2 px-3" required onChange={selectFile} id="file" type="file" name="file" accept="image/png,  image/jpg, image/jpeg" />
                             </div>
                         }
                         <div className="flex">

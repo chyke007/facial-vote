@@ -6,8 +6,11 @@
   "main": "index.js",
   "devDependencies": {
     "serverless": "^3.28.1",
+    "serverless-dotenv-plugin": "^6.0.0",
     "serverless-iam-roles-per-function": "^3.2.0",
-    "serverless-lumigo": "^1.14.3"
+    "serverless-lumigo": "^1.14.3",
+    "serverless-pseudo-parameters": "^2.6.1",
+    "serverless-step-functions": "^3.13.0"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -24,8 +27,12 @@
   },
   "homepage": "https://github.com/chyke007/facial#readme",
   "dependencies": {
+    "@aws-sdk/client-sesv2": "^3.312.0",
     "@lumigo/tracer": "^1.79.4",
     "chance": "^1.1.11",
-    "lodash": "^4.17.21"
+    "dayjs": "^1.11.7",
+    "jose": "^4.14.0",
+    "lodash": "^4.17.21",
+    "uuid": "^9.0.0"
   }
 }

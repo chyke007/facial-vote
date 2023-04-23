@@ -6,7 +6,7 @@ export const awsExport =  {
         userPoolId: config.Cognito.USER_POOL_ID,
         identityPoolId: config.Cognito.IDENTITY_POOL_ID,
         userPoolWebClientId: config.Cognito.APP_CLIENT_ID,
-        mandatorySignIn: true
+        mandatorySignIn: false
     },
     Storage: {
         region: config.S3.REGION,
