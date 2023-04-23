@@ -50,7 +50,7 @@ export default function Navbar() {
                     <Image
                         src="/logo.png"
                         alt="Logo"
-                        className="m-4"
+                        className="fixed  inset-y-0 left-2 z-10 my-6 mx-4"
                         width={50}
                         height={50}
                         priority
