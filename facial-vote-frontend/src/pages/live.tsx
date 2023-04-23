@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react'
 import DataTable from 'react-data-table-component';
 import Navbar from 'src/components/Navbar';
 import VoteCategory from 'src/components/VoteCategory';
-
 import Chart from 'src/components/Chart';
 import Iot from 'src/utils/iot';
 import config from 'src/utils/config';
@@ -196,14 +195,14 @@ export default function Live() {
     return (
         <>
             <Head>
-                <title>Live Result - Facial Recognition voting application</title>
-                <meta name="description" content="Retrieve Account" />
+                <title>Live Result - Facial Recognition Voting Application</title>
+                <meta name="description" content="Live Result - Facial Recognition Voting Application" />
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
                 <link rel="icon" href="/favicon.ico" />
             </Head>
-            <main >
+            <main className="flex flex-col justify-center h-full">
                 <Navbar />
-                <section className="flex lg:flex-row flex-col flex-col-reverse py-4 justify-center overflow-hidden  text-white px-6">
+                <section className="flex lg:flex-row flex-col flex-col-reverse py-4 justify-center overflow-scroll  text-white px-6 pt-16"  style={{ backgroundImage: "url(/pattern.jpg)" }}>
 
                     <div className="flex flex-col justify-center w-full px-4 pt-2 pb-8 mb-4 h-1/2 ">
                         <VoteCategory voting={voting} setVoting={setVoting} updateVoting={updateVoting} shouldDisable={false}/>
@@ -224,10 +223,12 @@ export default function Live() {
                             defaultSortFieldId={2}
                             sortFunction={customSort}
                         />
-
+                        {/* <aside className={styles.homeBody}> */}
                         {votes && votes.length > 0 && chartData.charts && chartData.charts.map((data: any, i: number) => (
                             <Chart chart={data} key={i} />
                         ))}
+                        {/* </aside> */}
+                        
                         <div className="flex mt-12">
                             <button className="bg-green-500 w-full hover:bg-white-700 text-white hover:text-green-600 font-bold py-2 px-4 focus:outline-none focus:shadow-outline" type="submit">
                                 Powered by AWS

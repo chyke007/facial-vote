@@ -8,6 +8,11 @@
   margin: 0;
 }
 
+html, body {
+  margin: 0;
+  height: 100%;
+}
+
 body {
   color: rgb(var(--foreground-rgb));
   background-color: var(--foreground-bg);
