@@ -206,7 +206,7 @@ export default function Live() {
                 <section className="flex lg:flex-row flex-col flex-col-reverse py-4 justify-center overflow-hidden  text-white px-6">
 
                     <div className="flex flex-col justify-center w-full px-4 pt-2 pb-8 mb-4 h-1/2 ">
-                        <VoteCategory voting={voting} setVoting={setVoting} updateVoting={updateVoting} />
+                        <VoteCategory voting={voting} setVoting={setVoting} updateVoting={updateVoting} shouldDisable={false}/>
 
                         {
 

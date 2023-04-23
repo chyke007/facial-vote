@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 const dayjs = require('dayjs')
 
-export default function VoteCategory({ voting, setVoting, updateVoting, children }: any) {
+export default function VoteCategory({ voting, setVoting, updateVoting, children, shouldDisable=true }: any) {
 
     const [loading, isloading] = useState(true);
 
@@ -74,7 +74,7 @@ export default function VoteCategory({ voting, setVoting, updateVoting, children
                                     <option disabled value={0}>Select Category</option>
                                     {
                                         voting && voting.map((category: { id: string, name: string, disabled: boolean }) =>
-                                            <option key={category.id} value={category.id} disabled={category.disabled}>{category.name}</option>)
+                                            <option key={category.id} value={category.id} disabled={shouldDisable && category.disabled}>{category.name}</option>)
                                     }
 
                                 </select>
