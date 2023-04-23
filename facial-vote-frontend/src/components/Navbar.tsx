@@ -7,8 +7,8 @@ export default function Navbar() {
 
     const [toggle, setToggle] = useState(false);
     const router = useRouter();
-    const active =  "text-sm font-semibold  px-6 py-2 rounded-md text-white uppercase hover:text-green-500 hover:bg-white bg-green-500";
-    const passive =  "text-sm font-semibold  px-6 py-2 rounded-md text-green-500 uppercase hover:text-white hover:bg-green-500 bg-white text-green-500";
+    const active = "text-sm font-semibold  px-6 py-2 rounded-md text-white uppercase hover:text-green-500 hover:bg-white bg-green-500";
+    const passive = "text-sm font-semibold  px-6 py-2 rounded-md text-green-500 uppercase hover:text-white hover:bg-green-500 bg-white text-green-500";
     function handleClick() {
         setToggle(!toggle)
     }
@@ -31,10 +31,10 @@ export default function Navbar() {
                                 priority
                             />
                         </Link>
-                        <Link href="/" className={router.pathname == "/" ? active: passive }>Home</Link>
-                        <Link href="/register_face" className={router.pathname == "/register_face" ? active: passive }>Register Face</Link>
-                        <Link href="/vote" className={router.pathname == "/vote" ? active: passive }>Vote Now</Link>
-                        <Link href="/live" className={router.pathname == "/live" ? active: passive }>Live Result</Link>
+                        <Link href="/" className={router.pathname == "/" ? active : passive}>Home</Link>
+                        <Link href="/register_face" className={router.pathname == "/register_face" ? active : passive}>Register Face</Link>
+                        <Link href="/vote" className={router.pathname == "/vote" ? active : passive}>Vote Now</Link>
+                        <Link href="/live" className={router.pathname == "/live" ? active : passive}>Live Result</Link>
                     </div>
                     <div className="hidden lg:flex lg:flex-1 lg:justify-end">
                         <Link href="https://github.com/chyke007/facial-vote" rel="noopener noreferrer" target="_blank">
@@ -88,6 +88,7 @@ export default function Navbar() {
                                         <Link href="/register_face" className="-mx-3 block rounded-lg py-2 px-3 text-base font-semibold leading-7 hover:bg-white hover:text-black">Register Face</Link>
                                         <Link href="/vote" className="-mx-3 block rounded-lg py-2 px-3 text-base font-semibold leading-7 hover:bg-white hover:text-black">Vote Now</Link>
                                         <Link href="/live" className="-mx-3 block rounded-lg py-2 px-3 text-base font-semibold leading-7 hover:bg-white hover:text-black">Live Result</Link>
+                                        <Link href="https://github.com/chyke007/facial-vote" rel="noopener noreferrer" target="_blank" className="-mx-3 block rounded-lg py-2 px-3 text-base font-semibold leading-7 hover:bg-white hover:text-black">GITHUB</Link>
                                     </div>
                                 </div>
                             </div>
