@@ -167,7 +167,7 @@ export default function Register_Face() {
     return (
         <>
             <Head>
-                <title>Retrieve Account - Facial Recognition Voting Application</title>
+                <title>Retrieve Account - FacePolls</title>
                 <meta name="description" content="Retrieve Account - Facial Recognition Voting Application" />
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
                 <link rel="icon" href="/favicon.ico" />

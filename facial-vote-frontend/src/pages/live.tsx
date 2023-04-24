@@ -195,7 +195,7 @@ export default function Live() {
     return (
         <>
             <Head>
-                <title>Live Result - Facial Recognition Voting Application</title>
+                <title>Live Result - FacePolls </title>
                 <meta name="description" content="Live Result - Facial Recognition Voting Application" />
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
                 <link rel="icon" href="/favicon.ico" />

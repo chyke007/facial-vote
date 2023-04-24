@@ -6,7 +6,7 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>Home - Facial Recognition Voting Application</title>
+        <title>FacePolls - Facial Recognition Voting Application</title>
         <meta name="description" content="Home - Facial Recognition Voting Application" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
@@ -18,7 +18,7 @@ export default function Home() {
 
           <div className="flex flex-col justify-center lg:w-1/3 px-4 pt-2 pb-8 mb-4 h-full ">
             <p className="text-black bg-white p-2 h-1/3 mb-4 h-auto -rounded-md">
-              <b>Facial Recognition voting application</b> <br /> <br />
+              <b>FacePolls - A Serverless Facial Recognition voting application built entirely using AWS services and adheres to established best practices and uses the Event-Driven pattern</b> <br /> <br />
             </p>
 
 
