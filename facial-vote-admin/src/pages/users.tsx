@@ -166,7 +166,7 @@ export default function Users() {
     return (
         <>
             <Head>
-                <title>Admin - Facial Recognition Voting Application</title>
+                <title>Admin - FacePolls</title>
                 <meta name="description" content="Admin - Facial Recognition Voting Application" />
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
                 <link rel="icon" href="/favicon.ico" />
