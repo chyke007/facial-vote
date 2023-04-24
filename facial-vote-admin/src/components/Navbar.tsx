@@ -32,9 +32,8 @@ export default function Navbar() {
                             />
                         </Link>
                         <Link href="/" className={router.pathname == "/" ? active : passive}>Home</Link>
-                        <Link href="/register_face" className={router.pathname == "/register_face" ? active : passive}>Register Face</Link>
-                        <Link href="/vote" className={router.pathname == "/vote" ? active : passive}>Vote Now</Link>
-                        <Link href="/live" className={router.pathname == "/live" ? active : passive}>Live Result</Link>
+                        <Link href="/voting" className={router.pathname == "/voting" ? active : passive}>Voting</Link>
+                        <Link href="/users" className={router.pathname == "/users" ? active : passive}>Users</Link>
                     </div>
                     <div className="hidden lg:flex lg:flex-1 lg:justify-end">
                         <Link href="https://github.com/chyke007/facial-vote" rel="noopener noreferrer" target="_blank">
@@ -95,9 +94,8 @@ export default function Navbar() {
                                 <div className="-my-6 divide-y divide-gray-500/10">
                                     <div className="space-y-2 py-6">
                                         <Link href="/" className="-mx-3 block rounded-lg py-2 px-3 text-base font-semibold leading-7 hover:bg-white hover:text-black">Home</Link>
-                                        <Link href="/register_face" className="-mx-3 block rounded-lg py-2 px-3 text-base font-semibold leading-7 hover:bg-white hover:text-black">Register Face</Link>
-                                        <Link href="/vote" className="-mx-3 block rounded-lg py-2 px-3 text-base font-semibold leading-7 hover:bg-white hover:text-black">Vote Now</Link>
-                                        <Link href="/live" className="-mx-3 block rounded-lg py-2 px-3 text-base font-semibold leading-7 hover:bg-white hover:text-black">Live Result</Link>
+                                        <Link href="/voting" className="-mx-3 block rounded-lg py-2 px-3 text-base font-semibold leading-7 hover:bg-white hover:text-black">Voting</Link>
+                                        <Link href="/users" className="-mx-3 block rounded-lg py-2 px-3 text-base font-semibold leading-7 hover:bg-white hover:text-black">Users</Link>
                                         <Link href="https://github.com/chyke007/facial-vote" rel="noopener noreferrer" target="_blank" className="-mx-3 block rounded-lg py-2 px-3 text-base font-semibold leading-7 hover:bg-white hover:text-black">GITHUB</Link>
                                     </div>
                                 </div>

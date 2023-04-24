@@ -15,7 +15,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     'Content-Type': 'application/json'
   }
   
-  console.log(`${config.Api.ENDPOINT}/vote/${votingId}`)
   switch (method) {
     case 'GET':
 
