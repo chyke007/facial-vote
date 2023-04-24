@@ -2,7 +2,7 @@
 'use strict';
 const AWS = require('aws-sdk');
 const dayjs = require('dayjs')
-const { decodeJwt } = require('../../utils/helper');
+const { decodeJwt, setErrorResponse, setSuccessResponse } = require('../../utils/helper');
 const dynamodb = new AWS.DynamoDB.DocumentClient();
 
 const { DYNAMODB_NAME } = process.env
@@ -65,9 +65,10 @@ const checkDateRange = async (voting) => {
 
     let res = { error: false }
     
-    if(dayjs().isBefore(dayjs(voting.time_start))){
+    //Local time is 1 hour ahead of timezone lambda uses
+    if(dayjs().add(1, 'hour').isBefore(dayjs(voting.time_start))){
         res.error = "Voting hasn't begun";
-    }else if(dayjs().isAfter(dayjs(voting.time_end))){
+    }else if(dayjs().add(1, 'hour').isAfter(dayjs(voting.time_end))){
         res.error = "Voting has ended";
     }
     return res;
@@ -96,27 +97,6 @@ const validateUserCanVote = async (votingId, userId) => {
     }
 }
 
-const setErrorResponse = (message, statusCode = 400) => {
-
-    const res = {
-        statusCode,
-        body: JSON.stringify({
-            error:  message
-        })
-    }
-    return res
-}
-
-const setSuccessResponse = (message, statusCode = 400) => {
-
-    const res = {
-        statusCode,
-        body: JSON.stringify({
-            message
-        })
-    }
-    return res
-}
 
 module.exports.handler = async (event) => {
     const { voting_id, candidate_id, user_id } = JSON.parse(event.body);

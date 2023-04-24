@@ -29,15 +29,38 @@ custom:
   dynamodb_name: ${self:service}-facialvote
   iot_name: ${self:service}-facialvote
   sts_user: ${self:service}-facialvote
+  admin_user: ${self:service}-facialvote-admin
   sts_expiry: 900
   jwt_expiry: 15m
   confidence_face: 90
   region: us-east-1
 
 functions:
-  preSignUp:
-    # Would later secure this url for only admin
-    handler: src/functions/cognito/pre-sign-up.handler
+  createUser:
+    handler: src/functions/cognito/create-user.handler
+    environment:
+      USERPOOL_ID: !Ref FacialVoteUserPool
+      ADMIN_ACCESS_KEY: ${self:outputs.AdminUserAccessKeyId.Value}
+      ADMIN_SECRET_KEY: ${self:outputs.AdminUserSecretKey.Value}
+    events:
+      - http: 
+          path: create-user
+          method: post
+          cors: true
+          private: true
+
+  getUsers:
+    handler: src/functions/cognito/get-users.handler
+    environment:
+      USERPOOL_ID: !Ref FacialVoteUserPool
+      ADMIN_ACCESS_KEY: ${self:outputs.AdminUserAccessKeyId.Value}
+      ADMIN_SECRET_KEY: ${self:outputs.AdminUserSecretKey.Value}
+    events:
+      - http: 
+          path: get-users
+          method: get
+          cors: true
+          private: true
 
   defineAuthChallenge:
     handler: src/functions/cognito/define-auth-challenge.handler
@@ -258,6 +281,28 @@ functions:
           cors: true
           private: true
 
+  addVoting:
+    handler: src/functions/voting/add-voting.handler
+    memorySize: 128
+    description: Add voting category
+    environment:
+      DYNAMODB_NAME: ${self:custom.dynamodb_name}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+          - dynamodb:PutItem
+          - dynamodb:Scan
+        Resource:
+          - !GetAtt FacialVoteDB.Arn
+          - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${self:custom.dynamodb_name}/*
+    events:
+      - http: 
+          path: voting
+          method: post
+          cors: true
+          private: true
+
   getVotes:
     handler: src/functions/voting/get-votes.handler
     memorySize: 128
@@ -456,7 +501,6 @@ resources:
             StringAttributeConstraints: 
               MinLength: '8'
         LambdaConfig:
-          PreSignUp: !GetAtt PreSignUpLambdaFunction.Arn
           DefineAuthChallenge: !GetAtt DefineAuthChallengeLambdaFunction.Arn
           CreateAuthChallenge: !GetAtt CreateAuthChallengeLambdaFunction.Arn
           VerifyAuthChallengeResponse: !GetAtt VerifyAuthChallengeResponseLambdaFunction.Arn
@@ -596,6 +640,11 @@ resources:
       Type: AWS::S3::Bucket
       Properties:
         BucketName: ${self:custom.uploaded_s3_bucket_name}
+        LifecycleConfiguration:
+          Rules:
+            - Id: DeleteRule
+              Status: Enabled
+              ExpirationInDays: 1
         CorsConfiguration:
           CorsRules:
           - AllowedHeaders: 
@@ -817,15 +866,33 @@ resources:
                 - execute-api:*
               Resource: "*"
 
-    # Lambda permissions
-    UserPoolPreSignUpLambdaPermission:
-      Type: AWS::Lambda::Permission
+    #Admin user
+    AdminUser:
+      Type: AWS::IAM::User
       Properties:
-        Action: lambda:invokeFunction
-        Principal: cognito-idp.amazonaws.com
-        FunctionName: !Ref PreSignUpLambdaFunction
-        SourceArn: !GetAtt FacialVoteUserPool.Arn
+        UserName: ${self:custom.admin_user}
+        ManagedPolicyArns:
+        - !Ref AdminManagedPolicy
 
+    AdminUserCredentials:
+      Type: AWS::IAM::AccessKey
+      Properties:
+        Status: Active
+        UserName: !Ref AdminUser
+    
+    AdminManagedPolicy:
+      Type: AWS::IAM::ManagedPolicy
+      Properties: 
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:AdminCreateUser
+                - cognito-idp:ListUsers
+              Resource: !GetAtt FacialVoteUserPool.Arn 
+
+    # Lambda permissions
     UserPoolDefineAuthChallengeLambdaPermission:
       Type: AWS::Lambda::Permission
       Properties:
@@ -869,3 +936,9 @@ outputs:
   StsUserSecretKey:
       Value:
         Fn::GetAtt: [ "StsUserCredentials", "SecretAccessKey" ]
+  AdminUserAccessKeyId:
+      Value:
+        Ref: AdminUserCredentials
+  AdminUserSecretKey:
+      Value:
+        Fn::GetAtt: [ "AdminUserCredentials", "SecretAccessKey" ]

@@ -132,7 +132,7 @@ export default function Live() {
     }
 
     const updateVote = (data: any) => {
-        if (Number(votingId) != Number(data.voting_id)) {
+        if (String(votingId) != String(data.voting_id)) {
             return
         }
 
@@ -145,7 +145,7 @@ export default function Live() {
             updateCharts(newVote)
         } else {
 
-            const id = votes.findIndex((vote: any) => Number(vote.candidate_id) == Number(data.candidate_id));
+            const id = votes.findIndex((vote: any) => String(vote.candidate_id) == String(data.candidate_id));
             let newVote: any = [...votes]
 
             if (id != -1) {

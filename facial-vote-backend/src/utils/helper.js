@@ -62,3 +62,25 @@ exports.decodeJwt = async (jwt) => {
 	};
     return await jose.jwtDecrypt(jwt, secrethash, options);
 }
+
+exports.setErrorResponse = (message, statusCode = 400) => {
+
+    const res = {
+        statusCode,
+        body: JSON.stringify({
+            error:  message
+        })
+    }
+    return res
+}
+
+exports.setSuccessResponse = (message, statusCode = 400) => {
+
+    const res = {
+        statusCode,
+        body: JSON.stringify({
+            message
+        })
+    }
+    return res
+}
