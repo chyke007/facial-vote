@@ -48,7 +48,7 @@ The application utilizes the event driven architecure and is built using AWS ser
 
 ## How To Use
 
-To clone and run this application, you'll need [Git](https://git-scm.com) and [Node.js](https://nodejs.org/en/download/) v15+ (which comes with [npm](http://npmjs.com)) installed on your computer. Also create an account with AWS, install the AWS CLI in locally, create an IAM user and add this user to AWS CLI as a profile. This profile user should have necessary permissions to deploy the backend section to AWS. Next, add required credentials to the .env file created from the command below. From your command line:
+To clone and run this application, you'll need [Git](https://git-scm.com) and [Node.js](https://nodejs.org/en/download/) v16+ (which comes with [npm](http://npmjs.com)) installed on your computer. Also create an account with AWS, install the AWS CLI in locally, create an IAM user and add this user to AWS CLI as a profile. This profile user should have necessary permissions to deploy the backend section to AWS. Next, add required credentials to the .env file created from the command below. From your command line:
 
 ```bash
 # Clone this repository
@@ -58,7 +58,7 @@ $ git clone https://github.com/chyke007/facial-vote.git
 $ cd facial-vote
 
 # Copy environment variable
-$ cp facial-vote-admin/.env.example .env && cp facial-vote-backend/.env.example facial-vote-backend/.env  && cp facial-vote-frontend/.env.example facial-vote-frontend/.env
+$ cp facial-vote-admin/.env.example facial-vote-admin/.env && cp facial-vote-backend/.env.example facial-vote-backend/.env  && cp facial-vote-frontend/.env.example facial-vote-frontend/.env
 
 # Deploy backend (run from folder root)
 $ npm i serverless -g
@@ -92,7 +92,7 @@ $ cd facial-vote-admin && npm i && npm run dev
 
 ## Documentation
 
-You can find an article that explains the project [here](https://nwachukwuchibuike.medium.com/)
+You can find an article that explains the project [here](https://aws.plainenglish.io/serverless-facial-recognition-voting-application-using-aws-services-160fa6b175e)
 
 ## You may also like...
 
