@@ -10,17 +10,17 @@ export default function Voting() {
         SIGN_IN,
         ADD_CATEGORY
     }
-    
-    const [stage, setStage] = useState(Stages.ADD_CATEGORY);
+
+    const [stage, setStage] = useState(Stages.SIGN_IN);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [voting , setVoting] = useState([])
+    const [voting, setVoting] = useState([])
     const [time_start, setTimeStart] = useState("");
     const [time_end, setTimeEnd] = useState("");
     const [description, setDescription] = useState("");
     const [candidates, setCandidates] = useState("");
     const [name, setName] = useState("");
-    const [isSignedIn, setIsSignedIn] = useState(true);
+    const [isSignedIn, setIsSignedIn] = useState(false);
     const [isloading, setIsloading] = useState(false)
     const [cognitoUser, setCognitoUser] = useState(null as any);
 
@@ -35,16 +35,11 @@ export default function Voting() {
         }
     }
 
-    useEffect(() => {
-        //would remove this after auth is enabled
-        getVotingCategory();
-
-    }, [])
     const columns = [
         {
             id: 1,
             name: 'S/N',
-            selector: (row: any, i:any) => (i+1),
+            selector: (row: any, i: any) => (i + 1),
             sortable: true,
         },
         {
@@ -104,7 +99,7 @@ export default function Voting() {
 
     const handleTimeStartChange = (e: any) => {
         setTimeStart(e.target.value)
-    } 
+    }
 
     const handleTimeEndChange = (e: any) => {
         setTimeEnd(e.target.value)
@@ -113,7 +108,7 @@ export default function Voting() {
     const handleDescriptionChange = (e: any) => {
         setDescription(e.target.value)
     }
-     
+
     const handleCandidatesChange = (e: any) => {
         setCandidates(e.target.value)
     }
@@ -121,23 +116,31 @@ export default function Voting() {
     const handleNameChange = (e: any) => {
         setName(e.target.value)
     }
-    
+
     const signIn = async (event: any) => {
         event.preventDefault();
         const email = event.target.email.value;
         const password = event.target.password.value;
-
+        let user;
         try {
             setIsloading(true);
-            let user = await Auth.signIn(email, password);
+            user = await Auth.signIn(email, password);
+            await Auth.completeNewPassword(user, password)
 
-            console.log(user)
             setCognitoUser(user);
             setIsloading(false);
             setStage(Stages.ADD_CATEGORY);
             getVotingCategory();
             setIsSignedIn(true);
         } catch (error: any) {
+            if (error.message == 'Missing required parameter Session') {
+                setCognitoUser(user);
+                setIsloading(false);
+                setStage(Stages.ADD_CATEGORY);
+                getVotingCategory();
+                setIsSignedIn(true);
+                return;
+            }
             console.log(error.message)
             alert(error.message);
             setIsloading(false);
@@ -154,7 +157,7 @@ export default function Voting() {
         };
 
         getData().then((data) => {
-            if(data.Items){
+            if (data.Items) {
                 setVoting(data.Items)
                 return;
             } else if (data.error) {
@@ -167,7 +170,7 @@ export default function Voting() {
     }
 
     const emptyVotingForm = async (event: any) => {
-        
+
         setTimeStart("");
         setTimeEnd("");
         setCandidates("");
@@ -177,7 +180,8 @@ export default function Voting() {
 
     const addVoting = async (event: any) => {
         event.preventDefault();
-
+        let jwt = (await Auth.currentSession()).getIdToken().getJwtToken();
+        console.log(jwt)
         if (!name || !time_start || !time_end || !candidates || !description) {
             return;
         }
@@ -187,7 +191,10 @@ export default function Voting() {
         const postData = async () => {
             const response = await fetch("/api/voting", {
                 method: "POST",
-                body: JSON.stringify({ name, time_start, time_end, candidates, description })
+                body: JSON.stringify({ name, time_start, time_end, candidates, description }),
+                headers: {
+                    "jwt": jwt
+                }
             });
             return response.json();
         };
@@ -225,7 +232,7 @@ export default function Voting() {
                         <p className="text-black bg-white p-2 rounded-md">
                             <b>Step 1: Log in</b> <br /> <br />
                             <b>Step 2: Enter Voting details and submit</b> <br /> <br />
-                           
+
                         </p>
                         {!isSignedIn &&
                             <div className="my-4">
@@ -233,32 +240,32 @@ export default function Voting() {
                                 <input className="appearance-none border w-full py-2 px-3 mt-4  text-black leading-tight focus:outline-none focus:shadow-outline" required value={password} onChange={handlePasswordChange} id="password" type="password" name="password" placeholder="Password" />
                             </div>
 
-                            
+
                         }
                         {stage == Stages.ADD_CATEGORY && isSignedIn &&
                             <>
-                            <div className="my-2">
-                                <input className="appearance-none border w-full py-2 px-3 text-black leading-tight focus:outline-none focus:shadow-outline" required value={name} onChange={handleNameChange} id="name" type="text" name="name" placeholder="Category Name" />
-                            </div>
+                                <div className="my-2">
+                                    <input className="appearance-none border w-full py-2 px-3 text-black leading-tight focus:outline-none focus:shadow-outline" required value={name} onChange={handleNameChange} id="name" type="text" name="name" placeholder="Category Name" />
+                                </div>
 
-                            <div className="my-2">
-                                <input className="appearance-none border w-full py-2 px-3 text-black leading-tight focus:outline-none focus:shadow-outline" required value={time_start} onChange={handleTimeStartChange} id="time_start" type="text" name="time_start" placeholder="StartTime (Example: 2023-04-25 10:30)" />
-                            </div>
+                                <div className="my-2">
+                                    <input className="appearance-none border w-full py-2 px-3 text-black leading-tight focus:outline-none focus:shadow-outline" required value={time_start} onChange={handleTimeStartChange} id="time_start" type="text" name="time_start" placeholder="StartTime (Example: 2023-04-25 10:30)" />
+                                </div>
 
-                            <div className="my-2">
-                                <input className="appearance-none border w-full py-2 px-3 text-black leading-tight focus:outline-none focus:shadow-outline" required value={time_end} onChange={handleTimeEndChange} id="time_end" type="text" name="time_end" placeholder="EndTime (Example: 2023-04-25 16:30)" />
-                            </div>
+                                <div className="my-2">
+                                    <input className="appearance-none border w-full py-2 px-3 text-black leading-tight focus:outline-none focus:shadow-outline" required value={time_end} onChange={handleTimeEndChange} id="time_end" type="text" name="time_end" placeholder="EndTime (Example: 2023-04-25 16:30)" />
+                                </div>
 
-                            <div className="my-2">
-                                <input className="appearance-none border w-full py-2 px-3 text-black leading-tight focus:outline-none focus:shadow-outline" required value={candidates} onChange={handleCandidatesChange} id="candidates" type="text" name="candidates" placeholder="Candidates (Example: John,Jane,Jack)" />
-                            </div>
+                                <div className="my-2">
+                                    <input className="appearance-none border w-full py-2 px-3 text-black leading-tight focus:outline-none focus:shadow-outline" required value={candidates} onChange={handleCandidatesChange} id="candidates" type="text" name="candidates" placeholder="Candidates (Example: John,Jane,Jack)" />
+                                </div>
 
-                            <div className="my-2">
-                                <textarea className="appearance-none border w-full py-2 px-3 text-black leading-tight focus:outline-none focus:shadow-outline" required value={description} onChange={handleDescriptionChange} id="username" cols={3} rows={3} name="description" placeholder="Category Description" />
-                            </div>
+                                <div className="my-2">
+                                    <textarea className="appearance-none border w-full py-2 px-3 text-black leading-tight focus:outline-none focus:shadow-outline" required value={description} onChange={handleDescriptionChange} id="username" cols={3} rows={3} name="description" placeholder="Category Description" />
+                                </div>
 
                             </>
-                            
+
                         }
                         <div className="flex">
                             <button className="bg-green-500 w-full hover:bg-white-700 text-white hover:text-green-600 font-bold py-2 px-4 focus:outline-none focus:shadow-outline" type="submit" disabled={isloading}>
@@ -268,7 +275,7 @@ export default function Voting() {
                     </form>
 
                     <aside className="lg:w-1/2 w-full h-full pt-12">
-                    <DataTable
+                        <DataTable
                             title="Voting Category"
                             columns={columns}
                             data={voting}

@@ -3,15 +3,19 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 
 type ResponseData = {
     [key: string]: any
-  }
+}
 
-export default async function handler(req: NextApiRequest, res:  NextApiResponse<ResponseData>) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse<ResponseData>) {
     const method = req.method;
-    const headers = { 'x-api-key': `${config.Api.APIKEY}` }
-    
+    const jwt = req.headers.jwt;
+    const headers = {
+        'x-api-key': `${config.Api.APIKEY}`,
+        'Authorization': `Bearer ${jwt}`
+    }
+
     switch (method) {
         case 'POST':
-          const body = JSON.parse(req.body);
+            const body = JSON.parse(req.body);
             try {
                 const response = await fetch(`${config.Api.ENDPOINT}/create-user`, {
                     method,
@@ -24,7 +28,7 @@ export default async function handler(req: NextApiRequest, res:  NextApiResponse
 
             } catch (err: any) {
                 return res.status(500).json({ error: err.message })
-        }
+            }
 
         case 'GET':
 
@@ -39,6 +43,6 @@ export default async function handler(req: NextApiRequest, res:  NextApiResponse
 
             } catch (err: any) {
                 return res.status(500).json({ error: err.message })
-        }
+            }
     }
 }

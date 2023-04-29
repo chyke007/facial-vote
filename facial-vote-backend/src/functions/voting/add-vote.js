@@ -72,7 +72,11 @@ const checkDateRange = async (voting) => {
 
     let res = { error: false }
 
-    //Local time is 1 hour ahead of timezone lambda uses
+    if ((!dayjs(voting.time_start).isValid() || !dayjs(voting.time_end).isValid())) {
+        res.error = "Provide valid time"
+    }
+
+    //UTC +1
     if (dayjs().add(1, 'hour').isBefore(dayjs(voting.time_start))) {
         res.error = "Voting hasn't begun";
     } else if (dayjs().add(1, 'hour').isAfter(dayjs(voting.time_end))) {

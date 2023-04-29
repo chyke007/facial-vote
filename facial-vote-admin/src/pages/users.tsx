@@ -11,12 +11,12 @@ export default function Users() {
         ADD_USER
     }
 
-    const [stage, setStage] = useState(Stages.ADD_USER);
+    const [stage, setStage] = useState(Stages.SIGN_IN);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [users, setUsers] = useState([])
     const [username, setUsername] = useState("");
-    const [isSignedIn, setIsSignedIn] = useState(true);
+    const [isSignedIn, setIsSignedIn] = useState(false);
     const [isloading, setIsloading] = useState(false)
     const [cognitoUser, setCognitoUser] = useState(null as any);
 
@@ -31,11 +31,6 @@ export default function Users() {
         }
     }
 
-    useEffect(() => {
-        //would remove this after auth is enabled
-        getUsers();
-
-    }, [])
     const columns = [
         {
             id: 1,
@@ -79,18 +74,26 @@ export default function Users() {
         event.preventDefault();
         const email = event.target.email.value;
         const password = event.target.password.value;
-
+        let user
         try {
             setIsloading(true);
-            let user = await Auth.signIn(email, password);
+            user = await Auth.signIn(email, password);
+            await Auth.completeNewPassword(user, password)
 
-            console.log(user)
             setCognitoUser(user);
             setIsloading(false);
             setStage(Stages.ADD_USER);
             getUsers();
             setIsSignedIn(true);
         } catch (error: any) {
+            if (error.message == 'Missing required parameter Session') {
+                setCognitoUser(user);
+                setIsloading(false);
+                setStage(Stages.ADD_USER);
+                getUsers();
+                setIsSignedIn(true);
+                return;
+            }
             console.log(error.message)
             alert(error.message);
             setIsloading(false);
@@ -99,15 +102,18 @@ export default function Users() {
 
     const getUsers = async () => {
 
+        let jwt = (await Auth.currentSession()).getIdToken().getJwtToken();
         const getData = async () => {
             const response = await fetch("/api/user", {
-                method: "GET"
+                method: "GET",
+                headers: {
+                    "jwt": jwt
+                }
             });
             return response.json();
         };
 
         getData().then((data) => {
-
             if (data.message) {
                 const reformedUser = data.message.map((user: any, i: number) => {
                     let innerData = user.Attributes.find((e: any) => e.Name == 'email');
@@ -120,17 +126,20 @@ export default function Users() {
                 return;
 
             } else if (data.error) {
+                console.log(data.error)
                 alert(data?.error?.message || data.error);
                 return;
             }
 
             alert("Unknown error!")
-        });
+        }).catch(e => console.error(e));
     }
 
     const addUser = async (event: any) => {
         event.preventDefault();
-        
+
+        let jwt = (await Auth.currentSession()).getIdToken().getJwtToken();
+
         if (!username) {
             return;
         }
@@ -140,17 +149,21 @@ export default function Users() {
         const postData = async () => {
             const response = await fetch("/api/user", {
                 method: "POST",
-                body: JSON.stringify({ email: username })
+                body: JSON.stringify({ email: username }),
+                headers: {
+                    "jwt": jwt
+                }
             });
             return response.json();
         };
 
-        postData().then((data) => {
+        postData().then(async (data) => {
             setIsloading(false);
 
             if (data.message) {
                 alert(data?.message?.message || data.message);
                 setUsername("");
+
                 getUsers();
                 return;
             } else if (data.error) {
