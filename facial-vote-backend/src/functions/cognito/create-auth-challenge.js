@@ -1,44 +1,41 @@
 const AWS = require('aws-sdk');
-const _ = require('lodash')
-const Chance = require('chance')
-const chance = new Chance()
-const { SESv2 } = require("@aws-sdk/client-sesv2");
-const ses = new SESv2()
-const { MAX_ATTEMPTS, FACE_ALREADY_ADDED } = require('../../utils/constant');
-const { publishToTopic } = require('../../utils/helper');
+const _ = require('lodash');
+const Chance = require('chance');
+const chance = new Chance();
+const { MAX_ATTEMPTS } = require('../../utils/constant');
+const { sendEmail } = require('../../utils/helper');
 const { SES_FROM_ADDRESS, DYNAMODB_NAME, IOT_ENDPOINT } = process.env
-
 
 const dynamodb = new AWS.DynamoDB.DocumentClient();
 
 module.exports.handler = async (event) => {
   if (!event.request.userAttributes.email) {
-    throw new Error("missing email")    
+    throw new Error("missing email")
   }
 
   let otpCode;
   let email = event.request.userAttributes.email;
 
 
-  if(email){
+  if (email) {
     const dbParams = {
       TableName: DYNAMODB_NAME,
       KeyConditionExpression: 'PK=:pk',
       ExpressionAttributeValues: {
-          ":pk": `FACE_ENTRY#${email}`
+        ":pk": `FACE_ENTRY#${email}`
       }
-  }
+    }
 
-  const results = await dynamodb.query(dbParams).promise();
-  if(results.Count >= 1){
-    throw new Error("Face already added to provided email")    
-  }
+    const results = await dynamodb.query(dbParams).promise();
+    if (results.Count >= 1) {
+      throw new Error("Face already added to provided email")
+    }
   }
 
   if (!event.request.session || !event.request.session.length) {
     // new auth session
     otpCode = chance.string({ length: 6, alpha: false, symbols: false })
-    await sendEmail(email, otpCode)
+    await sendEmail(email, otpCode, SES_FROM_ADDRESS)
   } else {
     // existing session, user has provided a wrong answer, so we need to
     // give them another chance
@@ -63,39 +60,11 @@ module.exports.handler = async (event) => {
   // NOTE: the private challenge parameters are passed along to the 
   // verify step and is not exposed to the caller
   // need to pass the secret code along so we can verify the user's answer
-  event.response.privateChallengeParameters = { 
+  event.response.privateChallengeParameters = {
     secretLoginCode: otpCode
   }
 
   event.response.challengeMetadata = `CODE-${otpCode}`
 
   return event
-}
-
-async function sendEmail(emailAddress, otpCode) {
-  await ses.sendEmail({
-    Destination: {
-      ToAddresses: [ emailAddress ]
-    },
-    FromEmailAddress: SES_FROM_ADDRESS,
-    Content: {
-      Simple: {
-        Subject: {
-          Charset: 'UTF-8',
-          Data: 'Your one-time login code'
-        },
-        Body: {
-          Html: {
-            Charset: 'UTF-8',
-            Data: `<html><body><p>This is your one-time login code:</p>
-                  <h3>${otpCode}</h3></body></html>`
-          },
-          Text: {
-            Charset: 'UTF-8',
-            Data: `Your one-time login code: ${otpCode}`
-          }
-        }
-      }
-    }
-  })
 }

@@ -232,6 +232,32 @@ functions:
         - iot:*
         Resource: '*'
 
+  sendEmail:
+    handler: src/functions/stepfunctions/comparephoto/send-email.handler
+    environment:
+      IOT_ENDPOINT: !GetAtt IotEndpoint.IotEndpointAddress
+      DYNAMODB_NAME: ${self:custom.dynamodb_name}
+      SES_FROM_ADDRESS: ${self:custom.ses_domain}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - iot:*
+        Resource: '*'
+      - Effect: Allow
+        Action: 
+          - dynamodb:Query
+          - dynamodb:Scan
+          - dynamodb:GetItem
+        Resource:
+          - !GetAtt FacialVoteDB.Arn
+          - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${self:custom.dynamodb_name}/*
+      - Effect: Allow
+        Action: ses:SendEmail
+        Resource: 
+          - !Sub arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/*
+          - !Sub arn:aws:ses:${AWS::Region}:${AWS::AccountId}:configuration-set/*
+
+
   generateToken:
     handler: src/functions/stepfunctions/comparephoto/generate-token.handler
     environment:
@@ -459,10 +485,14 @@ stepFunctions:
             Choices:
             - Variable: "$.status"
               StringEquals: SUCCESS
-              Next: GenerateToken
+              Next: SendEmail
             - Variable: "$.status"
               StringEquals: ERROR
               Next: Fail
+          SendEmail:
+            Type: Task
+            Resource: !GetAtt sendEmail.Arn
+            Next: GenerateToken
           GenerateToken:
             Type: Task
             Resource: !GetAtt generateToken.Arn

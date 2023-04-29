@@ -9,7 +9,7 @@ const sts = new AWS.STS({ region: AWS_REGION, accessKeyId: STS_ACCESS_KEY, secre
 const iotClient = new AWS.IotData({ endpoint: IOT_ENDPOINT });
 
 module.exports.handler = async (event) => {
-    const { key, faceId } = event.value;
+    const { key, faceId, otp } = event.value;
     let res = {
         status: 'SUCCESS',
         data: { key: STS_TOKEN, value: null }
@@ -23,13 +23,11 @@ module.exports.handler = async (event) => {
         .getSessionToken(params)
         .promise()
 
-    const userId = await generateJwt({ faceId });
-    res.data.value =  { userId ,  ...credentials.Credentials }
-    console.log("Credentials: ", { userId , ...credentials.Credentials })
+    const userId = await generateJwt({ faceId, otp });
+
+    res.data.value = { userId, ...credentials.Credentials };
     const file_name = extractFileName(key)
 
     await publishToTopic(iotClient, file_name, res);
-
-    console.log(event);
     return res;
 };
