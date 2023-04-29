@@ -30,6 +30,7 @@ custom:
   iot_name: ${self:service}-facialvote
   sts_user: ${self:service}-facialvote
   admin_user: ${self:service}-facialvote-admin
+  admin_email: ${env:ADMIN_EMAIL}
   sts_expiry: 900
   jwt_expiry: 15m
   confidence_face: 90
@@ -42,25 +43,37 @@ functions:
       USERPOOL_ID: !Ref FacialVoteUserPool
       ADMIN_ACCESS_KEY: ${self:outputs.AdminUserAccessKeyId.Value}
       ADMIN_SECRET_KEY: ${self:outputs.AdminUserSecretKey.Value}
+      ADMIN_EMAIL: ${self:custom.admin_email}
     events:
       - http: 
           path: create-user
           method: post
           cors: true
           private: true
-
+          authorizer:
+            name: CognitoAuthorizer
+            type: COGNITO_USER_POOLS
+            arn:
+              Fn::GetAtt: [FacialVoteUserPool, Arn]
+    
   getUsers:
     handler: src/functions/cognito/get-users.handler
     environment:
       USERPOOL_ID: !Ref FacialVoteUserPool
       ADMIN_ACCESS_KEY: ${self:outputs.AdminUserAccessKeyId.Value}
       ADMIN_SECRET_KEY: ${self:outputs.AdminUserSecretKey.Value}
+      ADMIN_EMAIL: ${self:custom.admin_email}
     events:
       - http: 
           path: get-users
           method: get
           cors: true
           private: true
+          authorizer:
+            name: CognitoAuthorizer
+            type: COGNITO_USER_POOLS
+            arn:
+              Fn::GetAtt: [FacialVoteUserPool, Arn]
 
   defineAuthChallenge:
     handler: src/functions/cognito/define-auth-challenge.handler
@@ -313,6 +326,7 @@ functions:
     description: Add voting category
     environment:
       DYNAMODB_NAME: ${self:custom.dynamodb_name}
+      ADMIN_EMAIL: ${self:custom.admin_email}
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -328,6 +342,11 @@ functions:
           method: post
           cors: true
           private: true
+          authorizer:
+            name: CognitoAuthorizer
+            type: COGNITO_USER_POOLS
+            arn:
+              Fn::GetAtt: [FacialVoteUserPool, Arn]
 
   getVotes:
     handler: src/functions/voting/get-votes.handler
@@ -543,6 +562,7 @@ resources:
         ExplicitAuthFlows:
           - ALLOW_CUSTOM_AUTH
           - ALLOW_REFRESH_TOKEN_AUTH
+          - ALLOW_USER_SRP_AUTH
         PreventUserExistenceErrors: ENABLED
 
     FacialVoteIdentityPool:
