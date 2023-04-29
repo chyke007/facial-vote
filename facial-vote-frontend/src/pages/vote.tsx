@@ -18,6 +18,7 @@ export default function Vote() {
     const [credentials, setCredentials] = useState(null as any);
     const [voting, setVoting] = useState([])
     const [votingCandidates, setVotingCandidates] = useState([])
+    const [otp, setOtp] = useState("");
     const [mqttClient, setMqttClient] = useState(null as any)
 
 
@@ -95,7 +96,11 @@ export default function Vote() {
             }
         })
     }
-   
+
+    const handleOtpChange = (e: any) => {
+        setOtp(e.target.value)
+    }
+
     const updateCandidate = (e: any) => {
         const votingId = e.target.value;
         let currentVoting: any = voting.find((e: any) => e.id == votingId)
@@ -109,8 +114,9 @@ export default function Vote() {
         const voting_id = event.target.category.value;
         const candidate_id = event.target.candidate.value;
         const user_id = credentials?.userId;
-        
-        if (voting_id == 0 || candidate_id == 0 || !user_id) {
+
+
+        if (voting_id == 0 || candidate_id == 0 || !user_id || !otp) {
             return;
         }
 
@@ -118,7 +124,7 @@ export default function Vote() {
         const postData = async () => {
             const response = await fetch("/api/vote", {
                 method: "POST",
-                body: JSON.stringify({ voting_id, candidate_id, user_id, credentials })
+                body: JSON.stringify({ voting_id, candidate_id, user_id, otp, credentials })
             });
             return response.json();
         };
@@ -128,8 +134,6 @@ export default function Vote() {
                 alert(data.message || data.error)
                 return;
             }
-            alert("You have voted")
-            console.log(data);
         });
     }
 
@@ -161,14 +165,17 @@ export default function Vote() {
                         {stage == Stages.VOTE &&
 
                             <VoteCategory voting={voting} setVoting={setVoting} updateVoting={updateCandidate}>
-                                      <select defaultValue={0} className="block font-bold w-1/2 bg-green-600 text-white py-3 px-4 m-2 rounded leading-tight focus:outline-none focus:bg-blue-600" name="candidate">
-                                                    <option disabled value={0}>Select Candidate</option>
-                                                    {
-                                                        votingCandidates.map((candidate: { id: string, name: string }) =>
-                                                            <option key={candidate.id} value={candidate.id} onChange={() => candidate.id}>{candidate.name}</option>)
-                                                    }
+                                <select defaultValue={0} className="block font-bold w-1/2 bg-green-600 text-white py-3 px-4 m-2 rounded leading-tight focus:outline-none focus:bg-blue-600" name="candidate">
+                                    <option disabled value={0}>Select Candidate</option>
+                                    {
+                                        votingCandidates.map((candidate: { id: string, name: string }) =>
+                                            <option key={candidate.id} value={candidate.id} onChange={() => candidate.id}>{candidate.name}</option>)
+                                    }
 
-                                        </select>
+                                </select>
+                                <div className="my-2">
+                                    <input className=" appearance-none border w-full py-2 px-3 text-black leading-tight focus:outline-none focus:shadow-outline" required value={otp} onChange={handleOtpChange} id="otp" type="text" name="otp" placeholder="Enter OTP (check email)" />
+                                </div>
                             </VoteCategory>
                         }
 
