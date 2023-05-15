@@ -62,7 +62,7 @@ $ cp facial-vote-admin/.env.example facial-vote-admin/.env && cp facial-vote-bac
 
 # Deploy backend (run from folder root)
 $ npm i serverless -g
-$ cd facial-vote-backend && serverless deploy
+$ cd facial-vote-backend && npm i && serverless deploy
 
 # Remove backend resources (run from folder root)
 $ cd facial-vote-backend && sls remove
