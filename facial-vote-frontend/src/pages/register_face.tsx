@@ -12,14 +12,26 @@ export default function Register_Face() {
         VALIDATE_OTP,
         ADD_PHOTO
     }
-    
+
+    interface FormElements extends HTMLFormControlsCollection {
+        otp: HTMLInputElement,
+        email: HTMLInputElement
+    }
+    interface StagesFormElement extends HTMLFormElement {
+        readonly elements: FormElements
+    }
+
+    interface Row {
+        [key: string]: string
+    }
+
     const [stage, setStage] = useState(Stages.RETRIEVE_ACCOUNT);
     const [email, setEmail] = useState("");
     const [otp, setOtp] = useState("");
     const [file, setFile] = useState(null as any);
     const [isSignedIn, setIsSignedIn] = useState(false);
     const [isloading, setIsloading] = useState(false)
-    const [cognitoUser, setCognitoUser] = useState(null as any);
+    const [cognitoUser, setCognitoUser] = useState<Row | null>(null);
     const [mqttClient, setMqttClient] = useState(null as any)
 
     const [attemptsLeft, setAttemptsLeft] = useState(3);
@@ -29,9 +41,9 @@ export default function Register_Face() {
     }
     useEffect(() => {
         setupIoT().catch(console.error);
-      }, [])
+    }, [])
 
-    const handleSubmit = async (event: any) => {
+    const handleSubmit = async (event: React.FormEvent<StagesFormElement>) => {
         switch (stage) {
             case Stages.ADD_PHOTO:
                 uploadImage(event)
@@ -59,21 +71,21 @@ export default function Register_Face() {
         }
     }
 
-    const handleEmailChange = (e: any) => {
+    const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setEmail(e.target.value)
     }
 
-    const handleOtpChange = (e: any) => {
+    const handleOtpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setOtp(e.target.value)
     }
 
-    const selectFile = (e: any) => {
+    const selectFile = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFile(e.target.files);
     }
 
-    const retrieveAccount = async (event: any) => {
+    const retrieveAccount = async (event: React.FormEvent<StagesFormElement>) => {
         event.preventDefault();
-        const email = event.target.email.value;
+        const email = event.currentTarget.email.value;
         try {
             setIsloading(true);
             let user = await Auth.signIn(email);
@@ -87,7 +99,7 @@ export default function Register_Face() {
         }
     }
 
-    const uploadImage = async (event: any) => {
+    const uploadImage = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
         if (file && file.size > config.MAX_ATTACHMENT_SIZE) {
@@ -102,11 +114,11 @@ export default function Register_Face() {
             setIsloading(false);
         }
     }
-    
+
     async function signOut() {
-        try{
+        try {
             await Auth.signOut()
-        }catch(err){
+        } catch (err) {
             console.log(err)
         }
         setCognitoUser(null);
@@ -116,10 +128,10 @@ export default function Register_Face() {
         setStage(Stages.RETRIEVE_ACCOUNT);
     }
 
-    const validateOtp = async (event: any) => {
+    const validateOtp = async (event: React.FormEvent<StagesFormElement>) => {
         event.preventDefault();
 
-        const otp = event.target.otp.value;
+        const otp = event.currentTarget.otp.value;
 
         try {
             setIsloading(true);
@@ -133,7 +145,7 @@ export default function Register_Face() {
                 setIsSignedIn(true);
                 setIsloading(false);
                 setStage(Stages.ADD_PHOTO);
-                mqttClient.subscribe(cognitoUser.username);
+                mqttClient.subscribe(cognitoUser?.username);
             }
         } catch (error) {
             console.log(error)
@@ -147,19 +159,22 @@ export default function Register_Face() {
         }
     }
 
-    const addTopicListeners = (client: any) => {
+    const addTopicListeners = (client: {
+        on(message: string, d: (x: string, y: string) => void): void
+    }
+    ) => {
         client.on('message', function (topic: string, payload: any) {
             const payloadEnvelope = JSON.parse(payload.toString())
 
             setIsloading(false);
             switch (payloadEnvelope.status) {
                 case 'ERROR':
-                  alert(payloadEnvelope.data.key);
-                  break
+                    alert(payloadEnvelope.data.key);
+                    break
                 case 'SUCCESS':
-                  alert("Face added successfully!")
-                  signOut();
-                  break
+                    alert("Face added successfully!")
+                    signOut();
+                    break
             }
         })
     }

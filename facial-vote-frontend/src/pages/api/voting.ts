@@ -2,7 +2,7 @@ import config from "src/utils/config";
 import type { NextApiRequest, NextApiResponse } from 'next'
 
 type ResponseData = {
-    [key: string]: any
+    [key: string]: string
   }
 
 export default async function handler(req: NextApiRequest, res:  NextApiResponse<ResponseData>) {
