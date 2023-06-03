@@ -4,7 +4,7 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 var aws4 = require('aws4')
 
 type ResponseData = {
-  [key: string]: any
+  [key: string]: string
 }
 
 

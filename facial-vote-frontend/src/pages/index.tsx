@@ -21,8 +21,6 @@ export default function Home() {
               <b>FacePolls - A Serverless Facial Recognition voting application built entirely using AWS services and adheres to established best practices and uses the Event-Driven pattern</b> <br /> <br />
             </p>
 
-
-
             <div className="flex">
               <button className="bg-green-500 w-full hover:bg-white-700 text-white hover:text-green-600 font-bold py-2 px-4 focus:outline-none focus:shadow-outline" type="submit">
                 Powered by AWS

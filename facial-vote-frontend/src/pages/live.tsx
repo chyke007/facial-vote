@@ -9,29 +9,6 @@ import config from 'src/utils/config';
 
 export default function Live() {
 
-    const [voting, setVoting] = useState([] as any)
-    const [votes, setVotes] = useState([] as any)
-    const [votingId, setVotingId] = useState(0)
-    const [realtime, setRealtime] = useState(null)
-    const [mqclient, setMqClient] = useState(null)
-    const [chartData, setChartData] = useState({} as any)
-    const [loading, isloading] = useState(false);
-
-    const setupIoT = async () => {
-        let mqclient = await Iot(addTopicListeners);
-        setMqClient(mqclient)
-        mqclient.subscribe(config.IoT.VOTE_ADDED);
-    }
-
-    useEffect(() => {
-        if (!mqclient) {
-            setupIoT().catch(console.error);
-        } else {
-            updateVote(realtime)
-        }
-    }, [realtime])
-
-
     const chartRaw = {
         version: 1.0,
         totalCharts: 2,
@@ -63,24 +40,55 @@ export default function Live() {
         ]
     }
 
+    interface Row {
+        [key: string]: string
+    }
+
+    interface Data {
+        candidate_vote: number
+
+    }
 
     const columns = [
         {
             id: 1,
             name: 'Candidate',
-            selector: (row: any) => row.candidate_name,
+            selector: (row: Row) => row.candidate_name,
             sortable: true,
         },
         {
             id: 2,
             name: 'Votes',
-            selector: (row: any) => row.candidate_vote,
+            selector: (row: Row) => row.candidate_vote,
             sortable: true,
         },
     ];
 
-    const updateCharts = (data: Array<any>) => {
-        data.forEach((val: any) => {
+    const [voting, setVoting] = useState([])
+    const [votes, setVotes] = useState<Array<Row>>([])
+    const [votingId, setVotingId] = useState<number | string>(0)
+    const [realtime, setRealtime] = useState<Row>({})
+    const [mqclient, setMqClient] = useState(null)
+    const [chartData, setChartData] = useState<typeof chartRaw>(chartRaw)
+    const [loading, isloading] = useState(false);
+
+    const setupIoT = async () => {
+        let mqclient = await Iot(addTopicListeners);
+        setMqClient(mqclient)
+        mqclient.subscribe(config.IoT.VOTE_ADDED);
+    }
+
+    useEffect(() => {
+        if (!mqclient) {
+            setupIoT().catch(console.error);
+        } else {
+            updateVote(realtime)
+        }
+    }, [realtime])
+
+
+    const updateCharts = (data: Array<Row>) => {
+        data.forEach((val: Row) => {
             chartRaw.charts[0].data.push([val.candidate_name, val.candidate_vote])
             chartRaw.charts[1].data.push([val.candidate_name, val.candidate_vote])
         })
@@ -88,11 +96,11 @@ export default function Live() {
         setChartData(chartRaw)
     }
 
-    const updateChartsReal = (data: Array<any>) => {
+    const updateChartsReal = (data: Array<Row>) => {
         chartRaw.charts[0].data = [["Candidate", "Votes"]]
         chartRaw.charts[1].data = [["Candidate", "Votes"]]
 
-        data.forEach((val: any) => {
+        data.forEach((val: Row) => {
             chartRaw.charts[0].data.push([val.candidate_name, val.candidate_vote])
             chartRaw.charts[1].data.push([val.candidate_name, val.candidate_vote])
         })
@@ -100,7 +108,7 @@ export default function Live() {
         setChartData(chartRaw)
     }
 
-    const updateVoting = (e: any) => {
+    const updateVoting = (e: React.ChangeEvent<HTMLInputElement>) => {
         const votingIdLo = e.target.value;
 
         setVotingId(votingIdLo);
@@ -131,7 +139,7 @@ export default function Live() {
 
     }
 
-    const updateVote = (data: any) => {
+    const updateVote = (data: Row) => {
         if (String(votingId) != String(data.voting_id)) {
             return
         }
@@ -139,20 +147,20 @@ export default function Live() {
         delete data.voting_id;
 
         if (votes.length == 0) {
-            let newVote: any = [{ ...data, candidate_vote: 1 }]
+            let newVote: Array<Row> = [{ ...data, candidate_vote: '1' }]
 
             setVotes(newVote);
             updateCharts(newVote)
         } else {
 
-            const id = votes.findIndex((vote: any) => String(vote.candidate_id) == String(data.candidate_id));
-            let newVote: any = [...votes]
+            const id = votes.findIndex((vote: Row) => String(vote.candidate_id) == String(data.candidate_id));
+            let newVote: Array<Row> = [...votes]
 
             if (id != -1) {
 
-                newVote[id].candidate_vote += 1
+                newVote[id].candidate_vote += Number(newVote[id].candidate_vote) + 1
             } else {
-                newVote.push({ ...data, candidate_vote: 1 })
+                newVote.push({ ...data, candidate_vote: '1' })
             }
 
             setVotes(newVote);
@@ -177,7 +185,10 @@ export default function Live() {
         });
     };
 
-    const addTopicListeners = (client: any) => {
+    const addTopicListeners = (client: {
+        on(message: string, d: (x: string, y: string) => void): void
+    }
+    ) => {
         client.on('message', (topic: string, payload: any) => {
             const payloadEnvelope = JSON.parse(payload.toString())
 
@@ -186,7 +197,7 @@ export default function Live() {
                     alert(payloadEnvelope.data.key);
                     break
                 case 'SUCCESS':
-                    setRealtime(payloadEnvelope.data.value)
+                    setRealtime(payloadEnvelope.data.value as unknown as Row)
                     break
             }
         })
@@ -202,10 +213,10 @@ export default function Live() {
             </Head>
             <main className="flex flex-col justify-center h-full">
                 <Navbar />
-                <section className="flex lg:flex-row flex-col flex-col-reverse py-4 justify-center overflow-scroll  text-white px-6 pt-16"  style={{ backgroundImage: "url(/pattern.jpg)" }}>
+                <section className="flex lg:flex-row flex-col flex-col-reverse py-4 justify-center overflow-scroll  text-white px-6 pt-16" style={{ backgroundImage: "url(/pattern.jpg)" }}>
 
                     <div className="flex flex-col justify-center w-full px-4 pt-2 pb-8 mb-4 h-1/2 ">
-                        <VoteCategory voting={voting} setVoting={setVoting} updateVoting={updateVoting} shouldDisable={false}/>
+                        <VoteCategory voting={voting} setVoting={setVoting} updateVoting={updateVoting} shouldDisable={false} />
 
                         {
 
@@ -224,11 +235,11 @@ export default function Live() {
                             sortFunction={customSort}
                         />
                         {/* <aside className={styles.homeBody}> */}
-                        {votes && votes.length > 0 && chartData.charts && chartData.charts.map((data: any, i: number) => (
+                        {votes && votes.length > 0 && chartData.charts && chartData.charts.map((data: typeof chartRaw.charts[0], i: number) => (
                             <Chart chart={data} key={i} />
                         ))}
                         {/* </aside> */}
-                        
+
                         <div className="flex mt-12">
                             <button className="bg-green-500 w-full hover:bg-white-700 text-white hover:text-green-600 font-bold py-2 px-4 focus:outline-none focus:shadow-outline" type="submit">
                                 Powered by AWS

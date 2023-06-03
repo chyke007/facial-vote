@@ -12,15 +12,26 @@ export default function Vote() {
         VOTE
     }
 
+    interface FormElements extends HTMLFormControlsCollection {
+        candidate: HTMLInputElement,
+        category: HTMLInputElement
+    }
+    interface StagesFormElement extends HTMLFormElement {
+        readonly elements: FormElements
+    }
+
+    interface Row {
+        [key: string]: string
+    }
+
     const [stage, setStage] = useState(Stages.VALIDATE_PHOTO);
     const [file, setFile] = useState(null as any);
     const [isloading, setIsloading] = useState(false)
-    const [credentials, setCredentials] = useState(null as any);
+    const [credentials, setCredentials] = useState<Row>({});
     const [voting, setVoting] = useState([])
     const [votingCandidates, setVotingCandidates] = useState([])
     const [otp, setOtp] = useState("");
     const [mqttClient, setMqttClient] = useState(null as any)
-
 
     const setupIoT = async () => {
         setMqttClient(await Iot(addTopicListeners));
@@ -30,7 +41,7 @@ export default function Vote() {
         setupIoT().catch(console.error);
     }, [])
 
-    const handleSubmit = async (event: any) => {
+    const handleSubmit = async (event: React.FormEvent<StagesFormElement>) => {
         switch (stage) {
             case Stages.VALIDATE_PHOTO:
                 uploadImage(event)
@@ -53,12 +64,12 @@ export default function Vote() {
         }
     }
 
-    const selectFile = (e: any) => {
+    const selectFile = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFile(e.target.files);
     }
 
 
-    const uploadImage = async (event: any) => {
+    const uploadImage = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
         if (file && file.size > config.MAX_ATTACHMENT_SIZE) {
@@ -80,7 +91,10 @@ export default function Vote() {
         }
     }
 
-    const addTopicListeners = (client: any) => {
+    const addTopicListeners = (client: {
+        on(message: string, d: (x: string, y: string) => void): void
+    }
+    ) => {
         client.on('message', function (topic: string, payload: any) {
             const payloadEnvelope = JSON.parse(payload.toString());
 
@@ -90,29 +104,29 @@ export default function Vote() {
                     alert(payloadEnvelope.data.key);
                     break
                 case 'SUCCESS':
-                    setCredentials(payloadEnvelope.data.value);
+                    setCredentials(payloadEnvelope.data.value as unknown as Row);
                     setStage(Stages.VOTE)
                     break
             }
         })
     }
 
-    const handleOtpChange = (e: any) => {
+    const handleOtpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setOtp(e.target.value)
     }
 
-    const updateCandidate = (e: any) => {
+    const updateCandidate = (e: React.ChangeEvent<HTMLInputElement>) => {
         const votingId = e.target.value;
-        let currentVoting: any = voting.find((e: any) => e.id == votingId)
+        let currentVoting: any = voting.find((e: { id: string }) => e.id == votingId)
 
         setVotingCandidates(JSON.parse(currentVoting.candidates))
     }
 
-    const submitVote = async (event: any) => {
+    const submitVote = async (event: React.FormEvent<StagesFormElement>) => {
         event.preventDefault();
 
-        const voting_id = event.target.category.value;
-        const candidate_id = event.target.candidate.value;
+        const voting_id = event.currentTarget.category.value;
+        const candidate_id = event.currentTarget.candidate.value;
         const user_id = credentials?.userId;
 
 

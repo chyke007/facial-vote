@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
-const dayjs = require('dayjs')
+const dayjs = require('dayjs');
 
-export default function VoteCategory({ voting, setVoting, updateVoting, children, shouldDisable=true }: any) {
+interface Row {
+    [key: string]: any
+}
+
+export default function VoteCategory({ voting, setVoting, updateVoting, children, shouldDisable = true }: Row) {
 
     const [loading, isloading] = useState(true);
 
@@ -13,7 +17,7 @@ export default function VoteCategory({ voting, setVoting, updateVoting, children
         initialize().catch(console.error);
     }, [])
 
-    const checkDateRange = (voting: any) => {
+    const checkDateRange = (voting: Row) => {
         if (dayjs().isBefore(dayjs(voting.time_start))) {
             return "Voting hasn't begun";
         } else if (dayjs().isAfter(dayjs(voting.time_end))) {
@@ -41,13 +45,13 @@ export default function VoteCategory({ voting, setVoting, updateVoting, children
     }
 
 
-    const loadVotingData = (data: { Items: Array<object>, Count: number }) => {
+    const loadVotingData = (data: { Items: Array<Row>, Count: number }) => {
         if (data.Count == 0) {
             setVoting([])
             return;
         }
 
-        data.Items.map(async (item: any) => {
+        data.Items.map(async (item: Row) => {
             const check = checkDateRange(item);
             item.disabled = false
 
@@ -56,7 +60,7 @@ export default function VoteCategory({ voting, setVoting, updateVoting, children
                 item.disabled = true
             }
         })
-        setVoting(data.Items as any)
+        setVoting(data.Items)
     }
     return (
         <>
@@ -65,7 +69,7 @@ export default function VoteCategory({ voting, setVoting, updateVoting, children
                     voting.length == 0 ?
                         (
                             <p className="text-black bg-white p-2 h-1/3 mb-4 rounded-md mt-8">
-                                <b>{ loading ? 'loading...': 'No voting process exist'}</b><br /> <br />
+                                <b>{loading ? 'loading...' : 'No voting process exist'}</b><br /> <br />
                             </p>
                         ) :
                         (
