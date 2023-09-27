@@ -158,7 +158,7 @@ export default function Live() {
 
             if (id != -1) {
 
-                newVote[id].candidate_vote += Number(newVote[id].candidate_vote) + 1
+                newVote[id].candidate_vote = Number(newVote[id].candidate_vote) + 1 as any;
             } else {
                 newVote.push({ ...data, candidate_vote: '1' })
             }
